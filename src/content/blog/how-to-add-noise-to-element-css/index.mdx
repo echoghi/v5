@@ -1,6 +1,7 @@
 ---
 title: 'How to Add a Noise Effect with CSS'
-description: 'Add "noise" to any element to produce a neat, grainy effect.'
+previewDescription: 'Add "noise" to any element to produce a neat, grainy effect.'
+description: 'Easily add a stylish, grainy texture to any element with CSS. Learn how to create a subtle noise effect that adds depth and visual interest.'
 date: 2025-03-20
 tags: ['code', 'design']
 image: './noise-css-cover.webp'
@@ -18,7 +19,7 @@ Unfortunately, for design illiterate devs like me, the process involved a Figma 
 
 Below is a simple proof of concept for an overlay that applies the effect to an image or any element the class is applied to. Simple adjust the opacity or base frequency to produce the desired level of graininess. Coupled with some crisp photography, AI artwork, or other design, the effect can make for some pretty epic landing pages with little effort.
 
-<NoiseOverlay image="/noise-css-cover.png" className="w-full" client:load />
+<NoiseOverlay image="/noise-css-cover.webp" className="w-full" client:load />
 
 ```css title="noise-overlay.css" caption="Add this class to an element to apply noise"
 .noise::before {

@@ -1,0 +1,103 @@
+---
+title: 'Manually Subset Fonts to Save Bandwidth'
+previewDescription: 'Reduce the impact of fonts on bandwidth. Only ship the glyphs you need.'
+description: 'Learn how to optimize font files by subsetting only the glyphs you use. Cut file size, improve load times, and reduce bandwidth impact.'
+date: 2025-05-09
+tags: ['code']
+image: './subset-font-cover.webp'
+---
+
+When building my directory <a href="https://catcafemap.com/cat-cafes" rel="noreferrer noopener" target="_blank">Cat Cafe Map</a>, my goal was to keep the site as minimal and fast as possible—no bloated frameworks or unnecessary libraries that would slow down page loads.
+
+I achieved this by statically rendering each page and only using vanilla JavaScript sparingly, thanks to [Astro Islands](https://docs.astro.build/en/concepts/islands). The initial version shipped less than 10kb of JavaScript per page, but there was one annoying outlier: my `woff2` font file, weighing in at 33kb, was over three times the size of each page's JavaScript.
+
+To optimize this, I added a build step to **subset the font** and only include the glyphs I actually needed. I wrote a simple Bash script that scanned the contents of the `dist` folder, extracted all the characters used across the site, and used `fonttools` to generate a trimmed-down font file containing only those glyphs.
+
+The result? A **70% reduction in font size**, cutting it from 33kb down to just 10kb—a small but meaningful performance win that helps reduce server bandwidth and improve initial page loads.
+
+Here’s a quick example of how I did it using **Bash, Python, and fonttools**:
+
+```bash title="process-fonts.sh" caption="Creating font subsets via fonttools"
+#!/bin/bash
+
+# Check and install dependencies
+check_and_install_dependencies() {
+    # Check for pip
+    if ! command -v pip &> /dev/null; then
+        echo "pip is not installed. Please install Python and pip first."
+        exit 1
+    fi
+
+    # Check for fonttools and brotli
+    if ! python3 -c "import fontTools" &> /dev/null || ! python3 -c "import brotli" &> /dev/null; then
+        echo "Installing required Python packages..."
+        pip install fonttools brotli
+    fi
+}
+
+# Directory containing your build files
+BUILD_DIR="./dist" # adjust this to your build directory
+# Directory containing your fonts
+FONTS_DIR="./public/fonts"
+# Output directory for subsetted fonts
+SUBSET_DIR="./public/fonts"
+
+# Create subset directory if it doesn't exist
+mkdir -p "$SUBSET_DIR"
+
+# Function to extract text content from files
+extract_text() {
+    # Extract text from HTML, JS, CSS files
+    find "$BUILD_DIR" -type f \( -name "*.html" -o -name "*.js" -o -name "*.css" \) -exec cat {} + | \
+    # Remove HTML tags
+    sed 's/<[^>]*>//g' | \
+    # Remove special characters but keep unicode
+    tr -cd '[:alnum:][:space:][:punct:]\\u0080-\\uffff' | \
+    sort -u > /tmp/text_content.txt
+}
+
+# Create subsets for each font
+create_subset() {
+    local font=$1
+    local basename=$(basename "$font")
+    local output="$SUBSET_DIR/${basename%.*}.subset.${basename##*.}"
+
+    echo "Creating subset for $basename..."
+
+    pyftsubset "$font" \
+        --output-file="$output" \
+        --text-file=/tmp/text_content.txt \
+        --layout-features='*' \
+        --flavor=woff2 \
+        --desubroutinize
+
+    echo "Created subset font: $output"
+
+    # Print size comparison
+    original_size=$(stat -f %z "$font")
+    subset_size=$(stat -f %z "$output")
+    echo "Original size: $(($original_size/1024))KB"
+    echo "Subset size: $(($subset_size/1024))KB"
+    echo "Reduction: $((100-($subset_size*100/$original_size)))%"
+}
+
+# Main process
+echo "Checking dependencies..."
+check_and_install_dependencies
+
+echo "Cleaning up old subset fonts..."
+find "$SUBSET_DIR" -type f -name "*subset*" -delete
+
+echo "Extracting text content from build..."
+extract_text
+
+echo "Creating font subsets..."
+for font in "$FONTS_DIR"/*.woff2; do
+    create_subset "$font"
+done
+
+echo "Cleanup..."
+rm /tmp/text_content.txt
+
+echo "Done! Subsetted fonts are in $SUBSET_DIR"
+```
