@@ -37,7 +37,7 @@ export async function getAlbumImages(
 ): Promise<ImageMetadata[]> {
   // 1. List all album files from collections path
   let images = import.meta.glob<{ default: ImageMetadata }>(
-    '/src/assets/images/**/*.{jpeg,jpg,png,webp}',
+    '/src/assets/images/**/*.{jpeg,jpg,JPG,PNG,png,webp}',
   )
 
   // 2. Filter images by albumId, exclude source files, and only include preview images
