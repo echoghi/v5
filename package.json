@@ -9,9 +9,10 @@
     "build": "astro check && astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "fonts": "./process-fonts.sh",
+    "fonts": "./scripts/process-fonts.sh",
     "prettier": "prettier --write .",
-    "resize-images": "node resize-images.cjs"
+    "process-images": "node ./scripts/process-images.cjs",
+    "process-all-images": "node ./scripts/process-all-images.cjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
