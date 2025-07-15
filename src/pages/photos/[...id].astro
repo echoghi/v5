@@ -1,6 +1,7 @@
 ---
 import Breadcrumbs from '@/components/Breadcrumbs.astro'
 import Container from '@/components/Container.astro'
+import MusicPlayer from '@/components/MusicPlayer.tsx'
 import PhotoGallery from '@/components/PhotoGallery.astro'
 import ScrollTop from '@/components/ScrollTop.astro'
 import Layout from '@/layouts/Layout.astro'
@@ -22,6 +23,7 @@ const galleryImages = await getAlbumImages(collection.id)
 ---
 
 <Layout title={collection.data.name} description={collection.data.description}>
+  <MusicPlayer client:load id={collection.id} />
   <Container class="flex flex-col gap-y-6">
     <section class="mx-auto">
       <Breadcrumbs

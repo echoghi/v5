@@ -34,3 +34,100 @@ export const SOCIAL_LINKS: Link[] = [
   { href: 'echoghi@rennalabs.xyz', label: 'Email' },
   { href: '/rss.xml', label: 'RSS' },
 ]
+
+export const songs = {
+  'palo-alto': [
+    {
+      title: 'Idol',
+      artist: 'Mind Enterprises',
+      src: '/mind-enterprises-idol.mp3',
+    },
+    {
+      title: 'Polaris',
+      artist: 'Cyber People',
+      src: '/cyber-people-polaris.mp3',
+    },
+    {
+      title: 'Balance Ton Quoi',
+      artist: 'Angèle',
+      src: '/angele-balance-ton-quoi.mp3',
+    },
+    {
+      title: 'Lost',
+      artist: 'Frank Ocean',
+      src: '/frank-ocean-lost.mp3',
+    },
+    {
+      title: 'Something in the Orange',
+      artist: 'Zach Bryan',
+      src: '/zach-bryan-something-in-the-orange.mp3',
+    },
+  ],
+  italy: [
+    {
+      title: 'Mystery of Love',
+      artist: 'Sufjan Stevens',
+      src: '/sufjan-stevens-mystery-of-love.mp3',
+      maxHeight: 60,
+    },
+    {
+      title: 'Always Forever',
+      artist: 'Cults',
+      src: '/cults-always-forever.mp3',
+    },
+    {
+      title: 'Clarinet Concerto in A Major (Adagio)',
+      artist: 'Mozart',
+      src: '/mozart-clarinet-concerto-adagio.mp3',
+      maxHeight: 64,
+    },
+    {
+      title: 'Amore mio aiutami',
+      artist: 'Piero Piccioni',
+      src: '/piero-piccioni-amore-mio-aiutami.mp3',
+      maxHeight: 48,
+    },
+  ],
+  'san-francisco': [
+    {
+      title: 'Rose Quartz',
+      artist: 'Toro y Moi',
+      src: '/toro-y-moi-rose-quartz.mp3',
+      maxHeight: 48,
+    },
+    {
+      title: 'Comedown',
+      artist: 'Parcels',
+      src: '/parcels-comedown.mp3',
+      maxHeight: 48,
+    },
+    {
+      title: 'Night Time',
+      artist: 'Superorganism',
+      src: '/superorganism-night-time.mp3',
+    },
+    {
+      title: "So We Won't Forget",
+      artist: 'Khruangbin',
+      src: '/khruangbin-so-we-wont-forget.mp3',
+    },
+    {
+      title: 'Sofia',
+      artist: 'Clairo',
+      src: '/clairo-sofia.mp3',
+      maxHeight: 48,
+    },
+    {
+      title: 'Dreaming',
+      artist: 'Blondie',
+      src: '/blondie-dreaming.mp3',
+    },
+    {
+      title: 'Ordinary Pleasure',
+      artist: 'Toro y Moi',
+      src: '/toro-y-moi-ordinary-pleasure.mp3',
+    },
+  ],
+}
+
+export const songCharacterLimit = 20

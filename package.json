@@ -12,7 +12,8 @@
     "fonts": "./scripts/process-fonts.sh",
     "prettier": "prettier --write .",
     "process-images": "node ./scripts/process-images.cjs",
-    "process-all-images": "node ./scripts/process-all-images.cjs"
+    "process-all-images": "node ./scripts/process-all-images.cjs",
+    "process-all-audio": "./scripts/process-audio-waveforms.sh --all"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",

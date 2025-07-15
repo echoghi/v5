@@ -180,6 +180,10 @@
     --input: var(--flexoki-ui-2);
     --ring: var(--flexoki-ui-3);
     --radius: 0.5rem;
+    --wave-width: 4px;
+    --wave-spacing: 4px;
+    --wave-color: currentColor;
+    --wave-duration: 1s;
   }
 
   .dark {
