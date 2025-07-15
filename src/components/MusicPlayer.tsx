@@ -56,13 +56,6 @@ export default function MusicPlayer({ id }: { id: string }) {
     const currentSong = playlist[currentSongIndex]
     if (!currentSong) return
 
-    // Check if waveform is already defined in the song object
-    if (Array.isArray(currentSong.waveform)) {
-      setWaveform(currentSong.waveform)
-      return
-    }
-
-    // Otherwise, try to load from file
     setIsLoadingWaveform(true)
     loadWaveformData(id, currentSong.src)
       .then((waveformData) => {
@@ -129,7 +122,11 @@ export default function MusicPlayer({ id }: { id: string }) {
     ? `/audio/${id}/${currentSong.src.replace(/^\//, '')}`
     : ''
 
-  const barRefs = [useRef(null), useRef(null), useRef(null)]
+  const barRefs = [
+    useRef<HTMLSpanElement>(null),
+    useRef<HTMLSpanElement>(null),
+    useRef<HTMLSpanElement>(null),
+  ]
 
   useEffect(() => {
     if (!audioRef.current || !waveform.length) return

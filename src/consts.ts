@@ -12,6 +12,13 @@ export type Link = {
   label: string
 }
 
+export type Song = {
+  title: string
+  artist: string
+  src: string
+  maxHeight?: number
+}
+
 export const SITE: Site = {
   TITLE: 'Emile Choghi',
   DESCRIPTION:
@@ -35,7 +42,7 @@ export const SOCIAL_LINKS: Link[] = [
   { href: '/rss.xml', label: 'RSS' },
 ]
 
-export const songs = {
+export const songs: Record<string, Song[]> = {
   'palo-alto': [
     {
       title: 'Idol',
