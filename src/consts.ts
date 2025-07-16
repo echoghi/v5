@@ -117,17 +117,19 @@ export const songs: Record<string, Song[]> = {
       title: "So We Won't Forget",
       artist: 'Khruangbin',
       src: '/khruangbin-so-we-wont-forget.mp3',
+      maxHeight: 40,
     },
     {
       title: 'Sofia',
       artist: 'Clairo',
       src: '/clairo-sofia.mp3',
-      maxHeight: 48,
+      maxHeight: 40,
     },
     {
       title: 'Dreaming',
       artist: 'Blondie',
       src: '/blondie-dreaming.mp3',
+      maxHeight: 40,
     },
     {
       title: 'Ordinary Pleasure',

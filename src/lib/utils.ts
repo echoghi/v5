@@ -67,3 +67,44 @@ export const debounce = (func: (...args: any[]) => void, delay: number) => {
     timeout = setTimeout(() => func(...args), delay)
   }
 }
+
+export function getAlbumCoverFilename(song: {
+  title: string
+  artist: string
+}): string {
+  const normalizeText = (text: string) => {
+    return text
+      .normalize('NFD') // Decompose characters into base + diacritic
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+  }
+
+  const artistSlug = normalizeText(song.artist)
+  const titleSlug = normalizeText(song.title)
+  return `${artistSlug}-${titleSlug}.webp`
+}
+
+export async function loadWaveformData(
+  id: string,
+  songSrc: string,
+): Promise<number[]> {
+  try {
+    const filename = songSrc.replace(/^\//, '').replace(/\.mp3$/, '')
+    const waveformPath = `/audio/${id}/${filename}-waveform.json`
+
+    const response = await fetch(waveformPath)
+    if (!response.ok) {
+      console.warn(`Waveform file not found: ${waveformPath}`)
+      return []
+    }
+
+    const data = await response.json()
+    return data.data || []
+  } catch (error) {
+    console.warn(`Failed to load waveform data for ${songSrc}:`, error)
+    return []
+  }
+}

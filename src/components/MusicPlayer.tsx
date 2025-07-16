@@ -1,36 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import {
-  Play,
-  Pause,
-  SkipBack,
-  SkipForward,
-  Minus,
-  Plus,
-  BoomBox,
-} from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, Minus, Plus } from 'lucide-react'
 import { songs as playlists, songCharacterLimit } from '@/consts'
-
-async function loadWaveformData(
-  id: string,
-  songSrc: string,
-): Promise<number[]> {
-  try {
-    const filename = songSrc.replace(/^\//, '').replace(/\.mp3$/, '')
-    const waveformPath = `/audio/${id}/${filename}-waveform.json`
-
-    const response = await fetch(waveformPath)
-    if (!response.ok) {
-      console.warn(`Waveform file not found: ${waveformPath}`)
-      return []
-    }
-
-    const data = await response.json()
-    return data.data || []
-  } catch (error) {
-    console.warn(`Failed to load waveform data for ${songSrc}:`, error)
-    return []
-  }
-}
+import { SpinningCD } from '@/components/SpinningCD'
+import { cn, loadWaveformData } from '@/lib/utils'
 
 export default function MusicPlayer({ id }: { id: string }) {
   const [open, setOpen] = useState(false)
@@ -38,7 +10,6 @@ export default function MusicPlayer({ id }: { id: string }) {
   const [currentSongIndex, setCurrentSongIndex] = useState(0)
   const [hasInteracted, setHasInteracted] = useState(false)
   const [waveform, setWaveform] = useState<number[]>([])
-  const [isLoadingWaveform, setIsLoadingWaveform] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
 
   const playlist = playlists[id as keyof typeof playlists]
@@ -51,12 +22,25 @@ export default function MusicPlayer({ id }: { id: string }) {
     }
   }, [playlist])
 
+  // Add keyboard event listener for spacebar
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only handle spacebar if user has interacted with the player
+      if (event.code === 'Space' && hasInteracted) {
+        event.preventDefault() // Prevent page scroll
+        togglePlay()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [hasInteracted, isPlaying])
+
   // Load waveform data when current song changes
   useEffect(() => {
     const currentSong = playlist[currentSongIndex]
     if (!currentSong) return
 
-    setIsLoadingWaveform(true)
     loadWaveformData(id, currentSong.src)
       .then((waveformData) => {
         setWaveform(waveformData)
@@ -64,9 +48,6 @@ export default function MusicPlayer({ id }: { id: string }) {
       .catch((error) => {
         console.warn('Failed to load waveform:', error)
         setWaveform([])
-      })
-      .finally(() => {
-        setIsLoadingWaveform(false)
       })
   }, [currentSongIndex, playlist, id])
 
@@ -213,57 +194,66 @@ export default function MusicPlayer({ id }: { id: string }) {
       </button>
       <div className="relative flex h-[56px] max-w-md items-center justify-between gap-6 rounded-md bg-foreground/10 px-6 shadow-md transition-all">
         <div
-          className="flex items-end gap-[4px] overflow-hidden"
-          style={{ height: '24px' }}
+          className={cn('flex items-center gap-6', !hasInteracted && 'gap-0')}
         >
-          {!hasInteracted ? (
-            <BoomBox className="text-foreground" size={24} />
-          ) : waveform.length ? (
-            [0, 1, 2].map((i) => (
-              <span
-                key={i}
-                ref={barRefs[i]}
-                className="w-1 bg-foreground transition-[height] duration-100 will-change-[height]"
-                style={{ height: '2px' }}
-              />
-            ))
-          ) : (
-            [0, 1, 2].map((i) => {
-              const delay = `${i * 100 + Math.random() * 80}ms`
-              const duration = `${0.9 + Math.random() * 0.4}s`
-              return (
+          {/* Spinning CD */}
+          <SpinningCD
+            song={currentSong}
+            isPlaying={isPlaying}
+            hasInteracted={hasInteracted}
+          />
+
+          {/* Animated bars */}
+          <div
+            className="flex items-end gap-[4px] overflow-hidden"
+            style={{ height: '24px' }}
+          >
+            {!hasInteracted ? (
+              <></>
+            ) : waveform.length ? (
+              [0, 1, 2].map((i) => (
                 <span
                   key={i}
-                  className="w-1 origin-bottom bg-foreground"
-                  style={{
-                    height: isPlaying ? '100%' : '2px',
-                    animationName: isPlaying ? 'waveBounce' : 'none',
-                    animationDuration: duration,
-                    animationDelay: delay,
-                    animationIterationCount: 'infinite',
-                    animationTimingFunction: 'ease-in-out',
-                    animationPlayState: isPlaying ? 'running' : 'paused',
-                  }}
+                  ref={barRefs[i]}
+                  className="w-1 bg-foreground transition-[height] duration-100 will-change-[height]"
+                  style={{ height: '2px' }}
                 />
-              )
-            })
-          )}
+              ))
+            ) : (
+              [0, 1, 2].map((i) => {
+                const delay = `${i * 100 + Math.random() * 80}ms`
+                const duration = `${0.9 + Math.random() * 0.4}s`
+                return (
+                  <span
+                    key={i}
+                    className="w-1 origin-bottom bg-foreground"
+                    style={{
+                      height: isPlaying ? '100%' : '2px',
+                      animationName: isPlaying ? 'waveBounce' : 'none',
+                      animationDuration: duration,
+                      animationDelay: delay,
+                      animationIterationCount: 'infinite',
+                      animationTimingFunction: 'ease-in-out',
+                      animationPlayState: isPlaying ? 'running' : 'paused',
+                    }}
+                  />
+                )
+              })
+            )}
+          </div>
         </div>
 
         {open && (
           <>
             <div className="flex items-center gap-2 pr-4">
-              <div>
-                <h3
-                  className="text-base font-bold leading-tight text-foreground"
-                  title={`${currentSong?.title} by ${currentSong?.artist}`}
-                >
+              <div className="max-w-[200px]">
+                <h3 className="whitespace-nowrap text-base font-bold leading-tight text-foreground">
                   {currentSong?.title?.length > songCharacterLimit
                     ? `${currentSong.title.substring(0, songCharacterLimit)}...`
                     : currentSong?.title}
                 </h3>
                 <p
-                  className="text-xs text-muted-foreground"
+                  className="truncate text-xs text-muted-foreground"
                   title={`${currentSong?.title} by ${currentSong?.artist}`}
                 >
                   {currentSong?.artist?.length > songCharacterLimit
