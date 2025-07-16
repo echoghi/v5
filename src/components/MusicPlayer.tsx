@@ -181,7 +181,7 @@ export default function MusicPlayer({ id }: { id: string }) {
         onClick={handleButtonClick}
         className="absolute -right-4 -top-4 z-[999] rounded-full border-2 border-foreground/10 bg-foreground/10 p-2 backdrop-blur-md transition-all duration-300 hover:scale-110 active:scale-95"
       >
-        {!hasInteracted || (!isPlaying && !open) ? (
+        {!hasInteracted ? (
           <Play
             className="fill-foreground text-foreground dark:fill-none"
             size={16}
