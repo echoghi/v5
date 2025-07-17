@@ -19,6 +19,16 @@ export type Song = {
   maxHeight?: number
 }
 
+export interface SongData {
+  title: string
+  artist: string
+  id: string
+  maxHeight?: number
+  waveform: number[]
+  albumCover: string
+  mp3Src: string
+}
+
 export const SITE: Site = {
   TITLE: 'Emile Choghi',
   DESCRIPTION:

@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { Play, Pause, SkipBack, SkipForward, Minus, Plus } from 'lucide-react'
+import { cn, getSongDataById } from '@/lib/utils'
+import type { SongData } from '@/consts'
 import { songs as playlists, songCharacterLimit } from '@/consts'
 import { SpinningCD } from '@/components/SpinningCD'
-import { cn, getSongDataById } from '@/lib/utils'
-import type { SongData } from '@/lib/utils'
 
 export default function MusicPlayer({ id }: { id: string }) {
   const playlist = playlists[id as keyof typeof playlists]
@@ -18,6 +18,15 @@ export default function MusicPlayer({ id }: { id: string }) {
   const [currentSongData, setCurrentSongData] = useState<SongData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
+
+  const waveform = currentSongData?.waveform || []
+  const audioSrc = currentSongData?.mp3Src || ''
+
+  const barRefs = [
+    useRef<HTMLSpanElement>(null),
+    useRef<HTMLSpanElement>(null),
+    useRef<HTMLSpanElement>(null),
+  ]
 
   // Load song data when current song changes
   useEffect(() => {
@@ -38,16 +47,26 @@ export default function MusicPlayer({ id }: { id: string }) {
       })
   }, [currentSongIndex, playlist, id])
 
-  // Add keyboard event listener for spacebar
+  // Autoplay when song data loads and player is active
+  useEffect(() => {
+    if (isPlaying && currentSongData && audioRef.current) {
+      audioRef.current.load()
+      const handleCanPlay = () => {
+        audioRef.current?.play()
+        audioRef.current?.removeEventListener('canplay', handleCanPlay)
+      }
+      audioRef.current.addEventListener('canplay', handleCanPlay)
+    }
+  }, [currentSongData, isPlaying])
+
+  // Keyboard event: spacebar toggles playback
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Only handle spacebar if user has interacted with the player
       if (event.code === 'Space' && hasInteracted) {
-        event.preventDefault() // Prevent page scroll
+        event.preventDefault()
         togglePlay()
       }
     }
-
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [hasInteracted, isPlaying])
@@ -83,39 +102,13 @@ export default function MusicPlayer({ id }: { id: string }) {
   const nextSong = () => {
     const nextIndex = (currentSongIndex + 1) % playlist.length
     setCurrentSongIndex(nextIndex)
-    if (isPlaying && audioRef.current) {
-      audioRef.current.load()
-      // Wait for the audio to be ready before playing
-      const handleCanPlay = () => {
-        audioRef.current?.play()
-        audioRef.current?.removeEventListener('canplay', handleCanPlay)
-      }
-      audioRef.current.addEventListener('canplay', handleCanPlay)
-    }
   }
 
   const previousSong = () => {
     const prevIndex =
       currentSongIndex === 0 ? playlist.length - 1 : currentSongIndex - 1
     setCurrentSongIndex(prevIndex)
-    if (isPlaying && audioRef.current) {
-      audioRef.current.load()
-      // Wait for the audio to be ready before playing
-      const handleCanPlay = () => {
-        audioRef.current?.play()
-        audioRef.current?.removeEventListener('canplay', handleCanPlay)
-      }
-      audioRef.current.addEventListener('canplay', handleCanPlay)
-    }
   }
-  const waveform = currentSongData?.waveform || []
-  const audioSrc = currentSongData?.mp3Src || ''
-
-  const barRefs = [
-    useRef<HTMLSpanElement>(null),
-    useRef<HTMLSpanElement>(null),
-    useRef<HTMLSpanElement>(null),
-  ]
 
   useEffect(() => {
     if (!audioRef.current || !waveform.length) return
@@ -125,23 +118,19 @@ export default function MusicPlayer({ id }: { id: string }) {
     const maxHeight = currentSongData?.maxHeight || 32
     const scale = maxHeight / maxValue
 
-    // Physics-based spring system
     const velocities = [0, 0, 0]
     let heights = [2, 2, 2]
 
-    const stiffness = 0.2 // how fast it moves toward the target
-    const damping = 0.5 // how much it bounces (0–1)
+    const stiffness = 0.2
+    const damping = 0.5
 
     const updateWave = () => {
       const audio = audioRef.current
       if (!audio) return
 
-      // If not playing, set bars to minimum height and stop animation
       if (!isPlaying) {
-        barRefs.forEach((barRef) => {
-          if (barRef.current) {
-            barRef.current.style.height = '2px'
-          }
+        barRefs.forEach((bar) => {
+          if (bar.current) bar.current.style.height = '2px'
         })
         return
       }
@@ -160,7 +149,7 @@ export default function MusicPlayer({ id }: { id: string }) {
         getValue(index + 2),
       ].map((v) => Math.max(v * scale, 2))
 
-      const updatedHeights = heights.map((h, i) => {
+      heights = heights.map((h, i) => {
         const displacement = target[i] - h
         velocities[i] += displacement * stiffness
         velocities[i] *= damping
@@ -168,9 +157,7 @@ export default function MusicPlayer({ id }: { id: string }) {
         return Math.max(2, Math.min(24, newHeight))
       })
 
-      heights = updatedHeights
-
-      updatedHeights.forEach((height, i) => {
+      heights.forEach((height, i) => {
         if (barRefs[i].current) {
           barRefs[i].current.style.height = `${height}px`
         }

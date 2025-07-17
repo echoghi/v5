@@ -1,6 +1,7 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import type { ImageMetadata } from 'astro'
+import type { SongData } from '@/consts'
 export const isClient = typeof window !== 'undefined'
 
 export function cn(...inputs: ClassValue[]) {
@@ -106,16 +107,6 @@ export async function loadWaveformData(
     console.warn(`Failed to load waveform data for ${songId}:`, error)
     return []
   }
-}
-
-export interface SongData {
-  title: string
-  artist: string
-  id: string
-  maxHeight?: number
-  waveform: number[]
-  albumCover: string
-  mp3Src: string
 }
 
 export async function getSongDataById(
