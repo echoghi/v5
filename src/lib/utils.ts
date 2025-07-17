@@ -89,11 +89,10 @@ export function getAlbumCoverFilename(song: {
 
 export async function loadWaveformData(
   id: string,
-  songSrc: string,
+  songId: string,
 ): Promise<number[]> {
   try {
-    const filename = songSrc.replace(/^\//, '').replace(/\.mp3$/, '')
-    const waveformPath = `/audio/${id}/${filename}-waveform.json`
+    const waveformPath = `/audio/${id}/${songId}-waveform.json`
 
     const response = await fetch(waveformPath)
     if (!response.ok) {
@@ -104,7 +103,63 @@ export async function loadWaveformData(
     const data = await response.json()
     return data.data || []
   } catch (error) {
-    console.warn(`Failed to load waveform data for ${songSrc}:`, error)
+    console.warn(`Failed to load waveform data for ${songId}:`, error)
     return []
+  }
+}
+
+export interface SongData {
+  title: string
+  artist: string
+  id: string
+  maxHeight?: number
+  waveform: number[]
+  albumCover: string
+  mp3Src: string
+}
+
+export async function getSongDataById(
+  locationId: string,
+  songId: string,
+): Promise<SongData | null> {
+  try {
+    // Import songs from consts to find the song by ID
+    const { songs } = await import('@/consts')
+    const locationSongs = songs[locationId as keyof typeof songs]
+
+    if (!locationSongs) {
+      console.warn(`Location not found: ${locationId}`)
+      return null
+    }
+
+    const song = locationSongs.find((s) => s.id === songId)
+    if (!song) {
+      console.warn(`Song not found: ${songId} in location ${locationId}`)
+      return null
+    }
+
+    // Generate the MP3 source path
+    const mp3Src = `/audio/${locationId}/${songId}.mp3`
+
+    const albumCover = `/images/album-covers/${songId}.webp`
+
+    // Load waveform data
+    const waveform = await loadWaveformData(locationId, songId)
+
+    return {
+      title: song.title,
+      artist: song.artist,
+      id: song.id,
+      maxHeight: song.maxHeight,
+      waveform,
+      albumCover,
+      mp3Src,
+    }
+  } catch (error) {
+    console.warn(
+      `Failed to get song data for ${songId} in ${locationId}:`,
+      error,
+    )
+    return null
   }
 }

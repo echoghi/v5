@@ -2,25 +2,41 @@ import { useState, useRef, useEffect } from 'react'
 import { Play, Pause, SkipBack, SkipForward, Minus, Plus } from 'lucide-react'
 import { songs as playlists, songCharacterLimit } from '@/consts'
 import { SpinningCD } from '@/components/SpinningCD'
-import { cn, loadWaveformData } from '@/lib/utils'
+import { cn, getSongDataById } from '@/lib/utils'
+import type { SongData } from '@/lib/utils'
 
 export default function MusicPlayer({ id }: { id: string }) {
-  const [open, setOpen] = useState(false)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [currentSongIndex, setCurrentSongIndex] = useState(0)
-  const [hasInteracted, setHasInteracted] = useState(false)
-  const [waveform, setWaveform] = useState<number[]>([])
-  const audioRef = useRef<HTMLAudioElement>(null)
-
   const playlist = playlists[id as keyof typeof playlists]
   if (!playlist) return null
 
+  const [open, setOpen] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentSongIndex, setCurrentSongIndex] = useState(
+    Math.floor(Math.random() * playlist.length),
+  )
+  const [hasInteracted, setHasInteracted] = useState(false)
+  const [currentSongData, setCurrentSongData] = useState<SongData | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const audioRef = useRef<HTMLAudioElement>(null)
+
+  // Load song data when current song changes
   useEffect(() => {
-    if (playlist.length > 0) {
-      const randomIndex = Math.floor(Math.random() * playlist.length)
-      setCurrentSongIndex(randomIndex)
-    }
-  }, [playlist])
+    const currentSong = playlist[currentSongIndex]
+    if (!currentSong) return
+
+    setIsLoading(true)
+    getSongDataById(id, currentSong.id)
+      .then((songData) => {
+        setCurrentSongData(songData)
+      })
+      .catch((error) => {
+        console.warn('Failed to load song data:', error)
+        setCurrentSongData(null)
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
+  }, [currentSongIndex, playlist, id])
 
   // Add keyboard event listener for spacebar
   useEffect(() => {
@@ -35,21 +51,6 @@ export default function MusicPlayer({ id }: { id: string }) {
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [hasInteracted, isPlaying])
-
-  // Load waveform data when current song changes
-  useEffect(() => {
-    const currentSong = playlist[currentSongIndex]
-    if (!currentSong) return
-
-    loadWaveformData(id, currentSong.src)
-      .then((waveformData) => {
-        setWaveform(waveformData)
-      })
-      .catch((error) => {
-        console.warn('Failed to load waveform:', error)
-        setWaveform([])
-      })
-  }, [currentSongIndex, playlist, id])
 
   const expandPlayer = () => setOpen(true)
   const minimizePlayer = () => setOpen(false)
@@ -97,11 +98,8 @@ export default function MusicPlayer({ id }: { id: string }) {
       setTimeout(() => audioRef.current?.play(), 100)
     }
   }
-
-  const currentSong = playlist[currentSongIndex]
-  const audioSrc = currentSong
-    ? `/audio/${id}/${currentSong.src.replace(/^\//, '')}`
-    : ''
+  const waveform = currentSongData?.waveform || []
+  const audioSrc = currentSongData?.mp3Src || ''
 
   const barRefs = [
     useRef<HTMLSpanElement>(null),
@@ -114,7 +112,7 @@ export default function MusicPlayer({ id }: { id: string }) {
 
     let animationFrameId: number
     const maxValue = Math.max(...waveform, 0.01)
-    const maxHeight = currentSong.maxHeight || 32
+    const maxHeight = currentSongData?.maxHeight || 32
     const scale = maxHeight / maxValue
 
     // Physics-based spring system
@@ -173,7 +171,7 @@ export default function MusicPlayer({ id }: { id: string }) {
 
     animationFrameId = requestAnimationFrame(updateWave)
     return () => cancelAnimationFrame(animationFrameId)
-  }, [waveform, currentSongIndex, isPlaying])
+  }, [isPlaying, waveform])
 
   return (
     <div className="fixed bottom-8 left-8 z-[99] hidden 2xl:block">
@@ -198,7 +196,7 @@ export default function MusicPlayer({ id }: { id: string }) {
         >
           {/* Spinning CD */}
           <SpinningCD
-            song={currentSong}
+            song={currentSongData}
             isPlaying={isPlaying}
             hasInteracted={hasInteracted}
           />
@@ -248,17 +246,19 @@ export default function MusicPlayer({ id }: { id: string }) {
             <div className="flex items-center gap-2 pr-4">
               <div className="max-w-[200px]">
                 <h3 className="whitespace-nowrap text-base font-bold leading-tight text-foreground">
-                  {currentSong?.title?.length > songCharacterLimit
-                    ? `${currentSong.title.substring(0, songCharacterLimit)}...`
-                    : currentSong?.title}
+                  {currentSongData &&
+                  currentSongData?.title?.length > songCharacterLimit
+                    ? `${currentSongData.title.substring(0, songCharacterLimit)}...`
+                    : currentSongData?.title}
                 </h3>
                 <p
                   className="truncate text-xs text-muted-foreground"
-                  title={`${currentSong?.title} by ${currentSong?.artist}`}
+                  title={`${currentSongData?.title} by ${currentSongData?.artist}`}
                 >
-                  {currentSong?.artist?.length > songCharacterLimit
-                    ? `${currentSong.artist.substring(0, songCharacterLimit)}...`
-                    : currentSong?.artist}
+                  {currentSongData &&
+                  currentSongData?.artist?.length > songCharacterLimit
+                    ? `${currentSongData.artist.substring(0, songCharacterLimit)}...`
+                    : currentSongData?.artist}
                 </p>
               </div>
             </div>

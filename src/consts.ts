@@ -15,7 +15,7 @@ export type Link = {
 export type Song = {
   title: string
   artist: string
-  src: string
+  id: string
   maxHeight?: number
 }
 
@@ -47,51 +47,52 @@ export const songs: Record<string, Song[]> = {
     {
       title: 'Idol',
       artist: 'Mind Enterprises',
-      src: '/mind-enterprises-idol.mp3',
+      id: 'mind-enterprises-idol',
+      maxHeight: 48,
     },
     {
       title: 'Polaris',
       artist: 'Cyber People',
-      src: '/cyber-people-polaris.mp3',
+      id: 'cyber-people-polaris',
     },
     {
       title: 'Balance Ton Quoi',
       artist: 'Angèle',
-      src: '/angele-balance-ton-quoi.mp3',
+      id: 'angele-balance-ton-quoi',
     },
     {
       title: 'Lost',
       artist: 'Frank Ocean',
-      src: '/frank-ocean-lost.mp3',
+      id: 'frank-ocean-lost',
     },
     {
       title: 'Something in the Orange',
       artist: 'Zach Bryan',
-      src: '/zach-bryan-something-in-the-orange.mp3',
+      id: 'zach-bryan-something-in-the-orange',
     },
   ],
   italy: [
     {
       title: 'Mystery of Love',
       artist: 'Sufjan Stevens',
-      src: '/sufjan-stevens-mystery-of-love.mp3',
+      id: 'sufjan-stevens-mystery-of-love',
       maxHeight: 60,
     },
     {
       title: 'Always Forever',
       artist: 'Cults',
-      src: '/cults-always-forever.mp3',
+      id: 'cults-always-forever',
     },
     {
       title: 'Clarinet Concerto in A Major (Adagio)',
       artist: 'Mozart',
-      src: '/mozart-clarinet-concerto-adagio.mp3',
+      id: 'mozart-clarinet-concerto-adagio',
       maxHeight: 64,
     },
     {
       title: 'Amore mio aiutami',
       artist: 'Piero Piccioni',
-      src: '/piero-piccioni-amore-mio-aiutami.mp3',
+      id: 'piero-piccioni-amore-mio-aiutami',
       maxHeight: 48,
     },
   ],
@@ -99,42 +100,42 @@ export const songs: Record<string, Song[]> = {
     {
       title: 'Rose Quartz',
       artist: 'Toro y Moi',
-      src: '/toro-y-moi-rose-quartz.mp3',
+      id: 'toro-y-moi-rose-quartz',
       maxHeight: 48,
     },
     {
       title: 'Comedown',
       artist: 'Parcels',
-      src: '/parcels-comedown.mp3',
+      id: 'parcels-comedown',
       maxHeight: 48,
     },
     {
       title: 'Night Time',
       artist: 'Superorganism',
-      src: '/superorganism-night-time.mp3',
+      id: 'superorganism-night-time',
     },
     {
       title: "So We Won't Forget",
       artist: 'Khruangbin',
-      src: '/khruangbin-so-we-wont-forget.mp3',
+      id: 'khruangbin-so-we-wont-forget',
       maxHeight: 40,
     },
     {
       title: 'Sofia',
       artist: 'Clairo',
-      src: '/clairo-sofia.mp3',
+      id: 'clairo-sofia',
       maxHeight: 40,
     },
     {
       title: 'Dreaming',
       artist: 'Blondie',
-      src: '/blondie-dreaming.mp3',
+      id: 'blondie-dreaming',
       maxHeight: 40,
     },
     {
       title: 'Ordinary Pleasure',
       artist: 'Toro y Moi',
-      src: '/toro-y-moi-ordinary-pleasure.mp3',
+      id: 'toro-y-moi-ordinary-pleasure',
     },
   ],
 }

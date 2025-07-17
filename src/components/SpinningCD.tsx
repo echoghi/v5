@@ -1,12 +1,12 @@
 import { useRef, useEffect } from 'react'
-import { getAlbumCoverFilename } from '@/lib/utils'
+import type { SongData } from '@/lib/utils'
 
 export function SpinningCD({
   song,
   isPlaying,
   hasInteracted,
 }: {
-  song: { title: string; artist: string } | undefined
+  song: SongData | null
   isPlaying: boolean
   hasInteracted: boolean
 }) {
@@ -60,9 +60,6 @@ export function SpinningCD({
     return null
   }
 
-  const albumCoverFilename = getAlbumCoverFilename(song)
-  const albumCoverPath = `/images/album-covers/${albumCoverFilename}`
-
   return (
     <div className="relative h-8 w-8">
       <div
@@ -70,9 +67,10 @@ export function SpinningCD({
         className="h-full w-full overflow-hidden rounded-full border border-foreground/20 transition-transform duration-100"
       >
         <img
-          src={albumCoverPath}
+          src={song.albumCover}
           alt={`${song.title} by ${song.artist}`}
           className="h-full w-full object-cover"
+          loading="eager"
         />
       </div>
       {/* CD center hole */}
