@@ -49,15 +49,18 @@ export default function MusicPlayer({ id }: { id: string }) {
 
   // Autoplay when song data loads and player is active
   useEffect(() => {
-    if (isPlaying && currentSongData && audioRef.current) {
+    if (currentSongData && audioRef.current) {
       audioRef.current.load()
-      const handleCanPlay = () => {
-        audioRef.current?.play()
-        audioRef.current?.removeEventListener('canplay', handleCanPlay)
+
+      if (isPlaying) {
+        const handleCanPlay = () => {
+          audioRef.current?.play()
+          audioRef.current?.removeEventListener('canplay', handleCanPlay)
+        }
+        audioRef.current.addEventListener('canplay', handleCanPlay)
       }
-      audioRef.current.addEventListener('canplay', handleCanPlay)
     }
-  }, [currentSongData, isPlaying])
+  }, [currentSongData])
 
   // Keyboard event: spacebar toggles playback
   useEffect(() => {
