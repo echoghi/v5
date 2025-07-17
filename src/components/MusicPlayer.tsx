@@ -85,7 +85,12 @@ export default function MusicPlayer({ id }: { id: string }) {
     setCurrentSongIndex(nextIndex)
     if (isPlaying && audioRef.current) {
       audioRef.current.load()
-      setTimeout(() => audioRef.current?.play(), 100)
+      // Wait for the audio to be ready before playing
+      const handleCanPlay = () => {
+        audioRef.current?.play()
+        audioRef.current?.removeEventListener('canplay', handleCanPlay)
+      }
+      audioRef.current.addEventListener('canplay', handleCanPlay)
     }
   }
 
@@ -95,7 +100,12 @@ export default function MusicPlayer({ id }: { id: string }) {
     setCurrentSongIndex(prevIndex)
     if (isPlaying && audioRef.current) {
       audioRef.current.load()
-      setTimeout(() => audioRef.current?.play(), 100)
+      // Wait for the audio to be ready before playing
+      const handleCanPlay = () => {
+        audioRef.current?.play()
+        audioRef.current?.removeEventListener('canplay', handleCanPlay)
+      }
+      audioRef.current.addEventListener('canplay', handleCanPlay)
     }
   }
   const waveform = currentSongData?.waveform || []
