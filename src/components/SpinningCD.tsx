@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react'
-import type { SongData } from '@/lib/utils'
+import type { SongData } from '@/consts'
 
 export function SpinningCD({
   song,
