@@ -25,7 +25,7 @@ const { title, description, image } = Astro.props
     <script
       defer
       is:inline
-      data-domain="emile.sh"
+      data-domain={import.meta.env.DOMAIN}
       src={`${import.meta.env.ANALYTICS_URL}/js/script.outbound-links.tagged-events.js`}
     ></script>
   </head>

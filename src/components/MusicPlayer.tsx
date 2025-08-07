@@ -4,11 +4,13 @@ import { cn, getSongDataById } from '@/lib/utils'
 import type { SongData } from '@/consts'
 import { songs as playlists, songCharacterLimit } from '@/consts'
 import { SpinningCD } from '@/components/SpinningCD'
+import usePlausible from '@/hooks/usePlausible'
 
 export default function MusicPlayer({ id }: { id: string }) {
   const playlist = playlists[id as keyof typeof playlists]
   if (!playlist) return null
 
+  const { trackEvent } = usePlausible()
   const [open, setOpen] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentSongIndex, setCurrentSongIndex] = useState(
@@ -55,6 +57,9 @@ export default function MusicPlayer({ id }: { id: string }) {
       if (isPlaying) {
         const handleCanPlay = () => {
           audioRef.current?.play()
+
+          trackSong()
+
           audioRef.current?.removeEventListener('canplay', handleCanPlay)
         }
         audioRef.current.addEventListener('canplay', handleCanPlay)
@@ -77,12 +82,27 @@ export default function MusicPlayer({ id }: { id: string }) {
   const expandPlayer = () => setOpen(true)
   const minimizePlayer = () => setOpen(false)
 
+  const trackSong = () => {
+    if (!currentSongData) return
+
+    trackEvent('song', {
+      props: {
+        title: currentSongData.title,
+        artist: currentSongData.artist,
+      },
+    })
+  }
+
   const togglePlay = () => {
     if (!audioRef.current) return
     if (isPlaying) {
       audioRef.current.pause()
     } else {
       audioRef.current.play()
+      // Only track if currentTime is 0 (song hasn't started yet)
+      if (audioRef.current.currentTime === 0) {
+        trackSong()
+      }
     }
     setIsPlaying(!isPlaying)
   }
@@ -92,6 +112,9 @@ export default function MusicPlayer({ id }: { id: string }) {
     setOpen(true)
     setIsPlaying(true)
     audioRef.current?.play()
+
+    // Track song play event
+    trackSong()
   }
 
   const handleButtonClick = () => {
