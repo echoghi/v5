@@ -2,8 +2,9 @@ import { useState, useRef, useEffect } from 'react'
 import { Play, Pause, SkipBack, SkipForward, Minus, Plus } from 'lucide-react'
 import { cn, getSongDataById } from '@/lib/utils'
 import type { SongData } from '@/consts'
-import { songs as playlists, songCharacterLimit } from '@/consts'
+import { songs as playlists } from '@/consts'
 import { SpinningCD } from '@/components/SpinningCD'
+import { ScrollingText } from '@/components/ScrollingText'
 import usePlausible from '@/hooks/usePlausible'
 
 export default function MusicPlayer({ id }: { id: string }) {
@@ -267,21 +268,27 @@ export default function MusicPlayer({ id }: { id: string }) {
         {open && (
           <>
             <div className="flex items-center gap-2 pr-4">
-              <div className="max-w-[200px]">
-                <h3 className="whitespace-nowrap text-base font-bold leading-tight text-foreground">
-                  {currentSongData &&
-                  currentSongData?.title?.length > songCharacterLimit
-                    ? `${currentSongData.title.substring(0, songCharacterLimit)}...`
-                    : currentSongData?.title}
+              <div className="max-w-[150px]">
+                <h3 className="text-base font-bold leading-tight text-foreground">
+                  {currentSongData?.title ? (
+                    <ScrollingText
+                      text={currentSongData.title}
+                      className="max-w-full"
+                      speed={100}
+                    />
+                  ) : null}
                 </h3>
                 <p
-                  className="truncate text-xs text-muted-foreground"
+                  className="text-xs text-muted-foreground"
                   title={`${currentSongData?.title} by ${currentSongData?.artist}`}
                 >
-                  {currentSongData &&
-                  currentSongData?.artist?.length > songCharacterLimit
-                    ? `${currentSongData.artist.substring(0, songCharacterLimit)}...`
-                    : currentSongData?.artist}
+                  {currentSongData?.artist ? (
+                    <ScrollingText
+                      text={currentSongData.artist}
+                      className="max-w-full"
+                      speed={80}
+                    />
+                  ) : null}
                 </p>
               </div>
             </div>

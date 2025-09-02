@@ -89,15 +89,16 @@ export const songs: Record<string, Song[]> = {
       maxHeight: 60,
     },
     {
-      title: 'Always Forever',
-      artist: 'Cults',
-      id: 'cults-always-forever',
+      title: 'From Up on Poppy Hill',
+      artist: 'Satoshi Takebe',
+      id: 'satoshi-takebe-from-up-on-poppy-hill',
+      maxHeight: 60,
     },
     {
       title: 'Clarinet Concerto in A Major (Adagio)',
       artist: 'Mozart',
       id: 'mozart-clarinet-concerto-adagio',
-      maxHeight: 64,
+      maxHeight: 60,
     },
     {
       title: 'Amore mio aiutami',
