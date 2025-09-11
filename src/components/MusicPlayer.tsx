@@ -19,7 +19,6 @@ export default function MusicPlayer({ id }: { id: string }) {
   )
   const [hasInteracted, setHasInteracted] = useState(false)
   const [currentSongData, setCurrentSongData] = useState<SongData | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
 
   const waveform = currentSongData?.waveform || []
@@ -36,7 +35,6 @@ export default function MusicPlayer({ id }: { id: string }) {
     const currentSong = playlist[currentSongIndex]
     if (!currentSong) return
 
-    setIsLoading(true)
     getSongDataById(id, currentSong.id)
       .then((songData) => {
         setCurrentSongData(songData)
@@ -44,9 +42,6 @@ export default function MusicPlayer({ id }: { id: string }) {
       .catch((error) => {
         console.warn('Failed to load song data:', error)
         setCurrentSongData(null)
-      })
-      .finally(() => {
-        setIsLoading(false)
       })
   }, [currentSongIndex, playlist, id])
 
