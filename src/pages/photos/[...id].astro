@@ -5,7 +5,7 @@ import MusicPlayer from '@/components/MusicPlayer.tsx'
 import PhotoGallery from '@/components/PhotoGallery.astro'
 import ScrollTop from '@/components/ScrollTop.astro'
 import Layout from '@/layouts/Layout.astro'
-import { getAlbumImages } from '@/lib/utils'
+import { getAlbumImages } from '@/lib/server-utils'
 import { type CollectionEntry, getCollection } from 'astro:content'
 
 export async function getStaticPaths() {

@@ -3,6 +3,9 @@ dist/
 # generated types
 .astro/
 
+# personal photos
+photos/
+
 # dependencies
 node_modules/
 

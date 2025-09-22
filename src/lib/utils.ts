@@ -1,7 +1,7 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import type { ImageMetadata } from 'astro'
 import type { SongData } from '@/consts'
+
 export const isClient = typeof window !== 'undefined'
 
 export function cn(...inputs: ClassValue[]) {
@@ -31,34 +31,6 @@ export function readingTime(html: string) {
 export function isLongArticle(html: string): boolean {
   const minutes = readingTimeMinutes(html)
   return minutes > 4
-}
-
-export async function getAlbumImages(
-  albumId: string,
-): Promise<ImageMetadata[]> {
-  // 1. List all album files from collections path
-  let images = import.meta.glob<{ default: ImageMetadata }>(
-    '/src/assets/images/**/*.{jpeg,jpg,JPG,PNG,png,webp}',
-  )
-
-  // 2. Filter images by albumId, exclude source files, and only include preview images
-  images = Object.fromEntries(
-    Object.entries(images).filter(
-      ([key]) =>
-        key.includes(albumId) &&
-        !key.includes('source') &&
-        key.includes('-preview'),
-    ),
-  )
-
-  // 3. Images are promises, so we need to resolve the glob promises
-  const resolvedImages = await Promise.all(
-    Object.values(images).map((image) => image().then((mod) => mod.default)),
-  )
-
-  // 4. Shuffle images in random order
-  resolvedImages.sort(() => Math.random() - 0.5)
-  return resolvedImages
 }
 
 export const debounce = (func: (...args: any[]) => void, delay: number) => {
@@ -132,7 +104,7 @@ export async function getSongDataById(
     // Generate the MP3 source path
     const mp3Src = `/audio/${locationId}/${songId}.mp3`
 
-    const albumCover = `/images/album-covers/${songId}.webp`
+    const albumCover = `https://cdn.emile.sh/album-covers/${songId}.webp`
 
     // Load waveform data
     const waveform = await loadWaveformData(locationId, songId)

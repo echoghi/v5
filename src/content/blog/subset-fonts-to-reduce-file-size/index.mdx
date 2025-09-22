@@ -7,15 +7,15 @@ tags: ['code']
 image: './subset-font-cover.webp'
 ---
 
-When building my directory <a href="https://catcafemap.com/cat-cafes" rel="noreferrer noopener" target="_blank">Cat Cafe Map</a>, my goal was to keep the site as minimal and fast as possible—no bloated frameworks or unnecessary libraries that would slow down page loads.
+When I started building <a href="https://catcafemap.com/cat-cafes" rel="noreferrer noopener" target="_blank">Cat Cafe Map</a>, I really wanted to keep things as minimal and fast as possible. No unnecessary frameworks, no giant libraries, just a clean site that loads quickly and feels light.
 
-I achieved this by statically rendering each page and only using vanilla JavaScript sparingly, thanks to [Astro Islands](https://docs.astro.build/en/concepts/islands). The initial version shipped less than 10kb of JavaScript per page, but there was one annoying outlier: my `woff2` font file, weighing in at 33kb, was over three times the size of each page's JavaScript.
+Most of the pages are statically rendered, and I barely touch JavaScript thanks to [Astro Islands](https://docs.astro.build/en/concepts/islands). My first version shipped under 10kb of JavaScript per page, which felt great. But there was one thing bugging me: my font file. The `woff2` file came in at 33kb, which made it three times bigger than the JS payload. Not the end of the world, but it definitely felt unnecessary.
 
-To optimize this, I added a build step to **subset the font** and only include the glyphs I actually needed. I wrote a simple Bash script that scanned the contents of the `dist` folder, extracted all the characters used across the site, and used `fonttools` to generate a trimmed-down font file containing only those glyphs.
+So I decided to trim it down. I added a little build step to subset the font so it only included the glyphs I actually use across the site. To do that, I hacked together a Bash script that scanned through the `dist` folder, collected all the characters used, and passed them into `fonttools` to generate a slimmer font file.
 
-The result? A **70% reduction in font size**, cutting it from 33kb down to just 10kb—a small but meaningful performance win that helps reduce server bandwidth and improve initial page loads.
+The difference was pretty satisfying. The font went from 33kb down to about 10kb, which is roughly a 70% reduction. It doesn't make a huge difference, but it’s a small optimization that makes the site snappier and keeps bandwidth usage lower.
 
-Here’s a quick example of how I did it using **Bash, Python, and fonttools**:
+Here’s a simple example of how I did it using Bash, Python, and fonttools:
 
 ```bash title="process-fonts.sh" caption="Creating font subsets via fonttools"
 #!/bin/bash
@@ -81,7 +81,6 @@ create_subset() {
     echo "Reduction: $((100-($subset_size*100/$original_size)))%"
 }
 
-# Main process
 echo "Checking dependencies..."
 check_and_install_dependencies
 

@@ -1,7 +1,6 @@
 ---
 import type { ImageMetadata } from 'astro'
 import { Icon } from 'astro-icon/components'
-import { Image } from 'astro:assets'
 import { getFullSizeImages } from '../lib/server-utils'
 
 interface Props {
@@ -21,8 +20,8 @@ const fullSizeImages = await getFullSizeImages(images, id)
     {
       images.map((image, index) => (
         <div class="relative mb-5 break-inside-avoid sm:mb-2">
-          <Image
-            src={image}
+          <img
+            src={image.src}
             alt={`Photo ${index + 1} from my trip to ${name}`}
             loading={index < 15 ? 'eager' : 'lazy'}
             decoding={index < 15 ? 'sync' : 'async'}
@@ -36,9 +35,7 @@ const fullSizeImages = await getFullSizeImages(images, id)
             data-hash={fullSizeImages[index].hash}
             width={image.width}
             height={image.height}
-            widths={[360, 720, 1600, image.width]}
             sizes={`(max-width: 360px) 360px, (max-width: 720px) 720px, (max-width: 1200px) 1200px, ${image.width}px`}
-            quality="medium"
           />
         </div>
       ))

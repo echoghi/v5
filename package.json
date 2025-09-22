@@ -1,5 +1,5 @@
 {
-  "name": "astro-erudite",
+  "name": "v5",
   "type": "module",
   "version": "1.1.9",
   "private": true,
@@ -11,9 +11,8 @@
     "astro": "astro",
     "fonts": "./scripts/process-fonts.sh",
     "prettier": "prettier --write .",
-    "process-images": "node ./scripts/process-images.cjs",
-    "process-all-images": "node ./scripts/process-all-images.cjs",
-    "process-all-audio": "./scripts/process-audio-waveforms.sh --all"
+    "process-images": "node ./scripts/process-and-upload-images.cjs",
+    "process-audio": "./scripts/process-audio-waveforms.sh --all"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
@@ -23,6 +22,7 @@
     "@astrojs/rss": "^4.0.12",
     "@astrojs/sitemap": "^3.5.1",
     "@astrojs/tailwind": "^6.0.2",
+    "@aws-sdk/client-s3": "^3.893.0",
     "@hbsnow/rehype-sectionize": "^1.0.7",
     "@iconify-json/lucide": "^1.2.4",
     "@radix-ui/react-avatar": "^1.1.0",
@@ -43,6 +43,7 @@
     "bootstrap-icons": "^1.11.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "dotenv": "^17.2.2",
     "image-size": "^2.0.2",
     "lucide-react": "^0.441.0",
     "plausible-tracker": "^0.3.9",
