@@ -35,8 +35,9 @@ function generateRandomHash() {
 }
 
 async function clearBucket() {
-  console.log('🗑️  Clearing bucket before upload...')
+  console.log('🗑️  Clearing bucket before upload (excluding albums/)...')
   let continuationToken
+
   do {
     const listResp = await r2.send(
       new ListObjectsV2Command({
@@ -46,20 +47,30 @@ async function clearBucket() {
     )
 
     if (listResp.Contents && listResp.Contents.length > 0) {
-      await r2.send(
-        new DeleteObjectsCommand({
-          Bucket: BUCKET,
-          Delete: {
-            Objects: listResp.Contents.map((obj) => ({ Key: obj.Key })),
-          },
-        }),
-      )
-      console.log(`Deleted ${listResp.Contents.length} objects`)
+      // ❌ exclude anything under albums/
+      const objectsToDelete = listResp.Contents.filter(
+        (obj) => obj.Key && !obj.Key.startsWith('albums/'),
+      ).map((obj) => ({ Key: obj.Key }))
+
+      if (objectsToDelete.length > 0) {
+        await r2.send(
+          new DeleteObjectsCommand({
+            Bucket: BUCKET,
+            Delete: {
+              Objects: objectsToDelete,
+            },
+          }),
+        )
+        console.log(`Deleted ${objectsToDelete.length} objects`)
+      } else {
+        console.log('No deletable objects in this batch')
+      }
     }
 
     continuationToken = listResp.NextContinuationToken
   } while (continuationToken)
-  console.log('✅ Bucket cleared')
+
+  console.log('✅ Bucket cleared (albums/ preserved)')
 }
 
 async function uploadToR2(key, buffer, contentType) {

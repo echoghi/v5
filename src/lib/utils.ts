@@ -104,7 +104,7 @@ export async function getSongDataById(
     // Generate the MP3 source path
     const mp3Src = `/audio/${locationId}/${songId}.mp3`
 
-    const albumCover = `https://cdn.emile.sh/album-covers/${songId}.webp`
+    const albumCover = `https://cdn.emile.sh/albums/${songId}.webp`
 
     // Load waveform data
     const waveform = await loadWaveformData(locationId, songId)
