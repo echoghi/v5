@@ -11,32 +11,73 @@ interface Props {
 
 const { name, images, id } = Astro.props
 
-// Create a map of full-size image URLs by replacing -preview in the src and stripping query params
 const fullSizeImages = await getFullSizeImages(images, id)
+
+const MAX_COLS = 3
+
+type GalleryItem = {
+  image: ImageMetadata
+  full: (typeof fullSizeImages)[number]
+  index: number
+}
+
+const items: GalleryItem[] = images.map((image, index) => ({
+  image,
+  full: fullSizeImages[index],
+  index,
+}))
+
+const cols: GalleryItem[][] = Array.from({ length: MAX_COLS }, () => [])
+const heights = Array.from({ length: MAX_COLS }, () => 0)
+
+for (const item of items) {
+  const w = item.image.width || 1
+  const h = item.image.height || 1
+  const ratio = h / w
+
+  let targetCol = 0
+  for (let i = 1; i < heights.length; i++) {
+    if (heights[i] < heights[targetCol]) targetCol = i
+  }
+
+  cols[targetCol].push(item)
+  heights[targetCol] += ratio
+}
+
+const EAGER_COUNT = 15
 ---
 
 <div>
-  <div class="columns-1 gap-5 sm:columns-2 sm:gap-2 md:columns-3">
+  <!-- Grid Layout -->
+  <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-2 md:grid-cols-3">
     {
-      images.map((image, index) => (
-        <div class="relative mb-5 break-inside-avoid sm:mb-2">
-          <img
-            src={image.src}
-            alt={`Photo ${index + 1} from my trip to ${name}`}
-            loading={index < 15 ? 'eager' : 'lazy'}
-            decoding={index < 15 ? 'sync' : 'async'}
-            class="gallery-item gallery-image"
-            draggable={false}
-            data-index={index}
-            data-fullsize={fullSizeImages[index].src}
-            data-fullwidth={fullSizeImages[index].width}
-            data-fullheight={fullSizeImages[index].height}
-            data-placeholder={fullSizeImages[index].blurDataUrl}
-            data-hash={fullSizeImages[index].hash}
-            width={image.width}
-            height={image.height}
-            sizes={`(max-width: 360px) 360px, (max-width: 720px) 720px, (max-width: 1200px) 1200px, ${image.width}px`}
-          />
+      cols.map((col: GalleryItem[], colIndex: number) => (
+        <div class="flex flex-col gap-5 sm:gap-2" data-col={colIndex}>
+          {col.map(({ image, full, index }) => (
+            <div
+              class="relative break-inside-avoid"
+              style={`aspect-ratio:${image.width}/${image.height};`}
+            >
+              <img
+                src={index < EAGER_COUNT ? image.src : ''}
+                data-src={index < EAGER_COUNT ? undefined : image.src}
+                alt={`Photo ${index + 1} from my trip to ${name}`}
+                loading={index < EAGER_COUNT ? 'eager' : 'lazy'}
+                decoding={index < EAGER_COUNT ? 'sync' : 'async'}
+                fetchpriority={index < 3 ? 'high' : 'auto'}
+                class="gallery-item gallery-image cursor-zoom-in transition-opacity duration-300"
+                draggable={false}
+                data-index={index}
+                data-fullsize={full.src}
+                data-fullwidth={full.width}
+                data-fullheight={full.height}
+                data-placeholder={full.blurDataUrl}
+                width={image.width}
+                height={image.height}
+                sizes={`(max-width: 360px) 360px, (max-width: 720px) 720px, (max-width: 1200px) 1200px, ${image.width}px`}
+              />
+            </div>
+          ))}
         </div>
       ))
     }
@@ -45,57 +86,49 @@ const fullSizeImages = await getFullSizeImages(images, id)
   <!-- Overlay container -->
   <div
     id="gallery-overlay"
-    class="fixed inset-0 z-[9999] hidden bg-background/50 backdrop-blur-lg"
+    class="fixed inset-0 z-[9999] hidden bg-background/80 opacity-0 backdrop-blur-lg transition-opacity duration-300"
+    aria-hidden="true"
   >
     <div
-      class="relative flex h-full items-center justify-center"
+      class="relative flex h-full w-full items-center justify-center p-4"
       id="overlay-container"
     >
       <!-- Left navigation arrow -->
       <button
         id="prev-button"
-        class="absolute left-5 hidden p-1.5 text-primary opacity-70 transition-all duration-300 hover:bg-secondary/50 hover:opacity-100 xl:block"
+        class="absolute left-5 z-20 hidden p-1.5 text-primary opacity-70 transition-all duration-300 hover:scale-110 hover:bg-secondary/20 hover:opacity-100 xl:block"
         aria-label="Previous image"
       >
         <Icon name="lucide:chevron-left" class="size-7" />
       </button>
 
-      <div id="image-stack" class="relative grid">
-        <div
-          id="image-container-placeholder"
-          class="image-container z-[1] col-start-1 row-start-1"
-        >
-          {
-            fullSizeImages.map((image, index) => (
-              <img
-                id={image.hash}
-                src={image.blurDataUrl}
-                alt={`Placeholder for photo ${index + 1} from my trip to ${name}`}
-                class="gallery-placeholder hidden"
-                width={image.width}
-                height={image.height}
-                style={{
-                  width: `${image.width}px`,
-                  height: `${image.height}px`,
-                }}
-                decoding="sync"
-                loading="eager"
-              />
-            ))
-          }
-        </div>
+      <!-- Image Stack Container -->
+      <div
+        id="image-stack"
+        class="relative shadow-2xl transition-opacity duration-300 ease-out"
+      >
+        <!-- Placeholder (Bottom Layer) -->
+        <img
+          id="overlay-placeholder"
+          class="absolute inset-0 h-full w-full object-fill transition-opacity duration-300"
+          alt=""
+          decoding="sync"
+        />
 
-        <div
-          id="image-container"
-          class="image-container z-[2] col-start-1 row-start-1"
-        >
-        </div>
+        <!-- Full Image (Top Layer) -->
+        <img
+          id="overlay-full"
+          class="absolute inset-0 h-full w-full object-contain opacity-0 transition-opacity duration-500 ease-in-out"
+          alt=""
+          decoding="async"
+          draggable="false"
+        />
       </div>
 
       <!-- Right navigation arrow -->
       <button
         id="next-button"
-        class="absolute right-5 hidden p-1.5 text-primary opacity-70 transition-all duration-300 hover:bg-secondary/50 hover:opacity-100 xl:block"
+        class="absolute right-5 z-20 hidden p-1.5 text-primary opacity-70 transition-all duration-300 hover:scale-110 hover:bg-secondary/20 hover:opacity-100 xl:block"
         aria-label="Next image"
       >
         <Icon name="lucide:chevron-right" class="size-7" />
@@ -104,9 +137,8 @@ const fullSizeImages = await getFullSizeImages(images, id)
       <!-- Close button -->
       <button
         id="close-button"
-        class="absolute right-3 top-3 p-1.5 text-primary opacity-70 transition-all duration-300 hover:bg-secondary/50 hover:opacity-100 sm:right-5 sm:top-5"
+        class="absolute right-3 top-3 z-30 p-1.5 text-primary opacity-70 transition-all duration-300 hover:rotate-90 hover:opacity-100 sm:right-5 sm:top-5"
         aria-label="Close gallery"
-        title="close"
       >
         <Icon name="lucide:x" class="size-6" />
       </button>
@@ -115,13 +147,54 @@ const fullSizeImages = await getFullSizeImages(images, id)
 </div>
 
 <script>
-  // Setup the gallery functionality
-  function setupGallery() {
-    const isMobile = window.innerWidth < 640
-    const galleryImages = document.querySelectorAll(
-      '.gallery-item',
+  function setupDeferredImageLoading(): void {
+    const deferred = document.querySelectorAll(
+      'img.gallery-item[data-src]',
     ) as NodeListOf<HTMLImageElement>
+
+    if (!('IntersectionObserver' in window)) {
+      deferred.forEach((img) => {
+        const src = img.getAttribute('data-src')
+        if (src) {
+          img.setAttribute('src', src)
+          img.removeAttribute('data-src')
+        }
+      })
+      return
+    }
+
+    const io = new IntersectionObserver(
+      (entries, obs) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue
+          const img = entry.target as HTMLImageElement
+          const src = img.getAttribute('data-src')
+          if (src) {
+            img.setAttribute('src', src)
+            img.removeAttribute('data-src')
+          }
+          obs.unobserve(img)
+        }
+      },
+      { rootMargin: '600px 0px' },
+    )
+
+    deferred.forEach((img) => io.observe(img))
+  }
+
+  function setupGallery(): void {
     const overlay = document.getElementById('gallery-overlay') as HTMLDivElement
+    const overlayContainer = document.getElementById(
+      'overlay-container',
+    ) as HTMLDivElement
+    const imageStack = document.getElementById('image-stack') as HTMLDivElement
+    const overlayPlaceholder = document.getElementById(
+      'overlay-placeholder',
+    ) as HTMLImageElement
+    const overlayFull = document.getElementById(
+      'overlay-full',
+    ) as HTMLImageElement
+
     const prevButton = document.getElementById(
       'prev-button',
     ) as HTMLButtonElement
@@ -132,173 +205,210 @@ const fullSizeImages = await getFullSizeImages(images, id)
       'close-button',
     ) as HTMLButtonElement
 
-    let activeImage: HTMLImageElement | null = null
-    let currentIndex = -1
-    let inactivityTimer: number | null = null
+    if (
+      !overlay ||
+      !overlayContainer ||
+      !imageStack ||
+      !overlayPlaceholder ||
+      !overlayFull
+    )
+      return
 
-    // Button visibility functions
-    function showButtons() {
-      prevButton.style.opacity = '0.7'
-      nextButton.style.opacity = '0.7'
-      closeButton.style.opacity = '0.7'
+    const galleryImages = document.querySelectorAll(
+      '.gallery-item',
+    ) as NodeListOf<HTMLImageElement>
 
-      // Reset the timer if it exists
-      if (inactivityTimer) {
-        clearTimeout(inactivityTimer)
-      }
-
-      // Only apply the inactivity timer on non-mobile screens (640px and up)
-      if (!isMobile) {
-        // Start a new timer to hide buttons after 2 seconds
-        inactivityTimer = window.setTimeout(hideButtons, 2000)
-      }
-    }
-
-    function hideButtons() {
-      if (isMobile) return
-      prevButton.style.opacity = '0'
-      nextButton.style.opacity = '0'
-      closeButton.style.opacity = '0'
-    }
-
-    function handleImageClick(event: MouseEvent) {
-      const previewImg = event.target as HTMLImageElement
-
-      if (!overlay.classList.contains('hidden')) {
-        if (
-          event.target === prevButton ||
-          event.target === nextButton ||
-          (event.target as Element).closest('#prev-button') ||
-          (event.target as Element).closest('#next-button') ||
-          (event.target as Element).closest('#close-button')
-        ) {
-          event.stopPropagation()
-          return
-        }
-
-        handleCloseZoom()
-        return
-      }
-
-      const imageContainer = document.getElementById(
-        'image-container',
-      ) as HTMLDivElement
-
-      const fullWidth = parseInt(previewImg.dataset.fullwidth || '0', 10)
-      const fullHeight = parseInt(previewImg.dataset.fullheight || '0', 10)
-      const fullSizeSrc = previewImg.dataset.fullsize || ''
-      const imageHash = previewImg.dataset.hash || ''
-
-      // Create full-size image
-      const fullSizeImg = document.createElement('img')
-      fullSizeImg.id = `full-${imageHash}`
-      fullSizeImg.className = 'gallery-image-zoom opacity-0'
-      fullSizeImg.src = fullSizeSrc
-      fullSizeImg.alt = previewImg.alt
-      fullSizeImg.draggable = false
-      fullSizeImg.width = fullWidth
-      fullSizeImg.height = fullHeight
-      fullSizeImg.style.zIndex = '2'
-
-      activeImage = fullSizeImg
-      currentIndex = parseInt(previewImg.dataset.index || '0', 10)
-
-      imageContainer.appendChild(fullSizeImg)
-
-      if (fullSizeImg.complete && fullSizeImg.naturalWidth > 0) {
-        fullSizeImg.classList.add('gallery-image-zoom-loaded')
-      } else {
-        // Show current placeholder
-        const placeholderImg = document.getElementById(
-          imageHash,
-        ) as HTMLImageElement
-
-        if (placeholderImg) {
-          placeholderImg.classList.remove('hidden')
-          placeholderImg.style.zIndex = '1'
-        }
-
-        fullSizeImg.onload = () => {
-          fullSizeImg.classList.add('gallery-image-zoom-loaded')
-          placeholderImg?.classList.add('gallery-placeholder-loaded')
-        }
-      }
-
-      overlay.classList.remove('hidden')
-      document.body.style.overflow = 'hidden'
-      showButtons()
-      overlay.addEventListener('mousemove', showButtons)
-    }
-
-    function handleCloseZoom() {
-      if (!activeImage) return
-
-      // Find the current placeholder by hash and hide it
-      const currentHash = activeImage.id.replace('full-', '')
-      const currentPlaceholder = document.getElementById(currentHash)
-      if (currentPlaceholder) {
-        currentPlaceholder.classList.remove('gallery-placeholder-loaded')
-        currentPlaceholder.classList.add('hidden')
-      }
-
-      if (activeImage) {
-        activeImage.remove()
-      }
-
-      // Hide overlay
-      overlay.classList.add('hidden')
-      document.body.style.overflow = ''
-
-      // Clear timer
-      if (inactivityTimer) {
-        clearTimeout(inactivityTimer)
-        inactivityTimer = null
-      }
-
-      // Remove mousemove listener
-      overlay.removeEventListener('mousemove', showButtons)
-
-      // Reset references
-      activeImage = null
-      currentIndex = -1
-    }
-
-    function navigateGallery(direction: number) {
-      if (currentIndex === -1) return
-
-      const imagesArray = Array.from(galleryImages)
-      const totalImages = imagesArray.length
-      const newIndex = (currentIndex + direction + totalImages) % totalImages
-      const targetImg = imagesArray[newIndex]
-
-      handleCloseZoom()
-
-      targetImg.click()
-    }
-
-    // Add click handlers to all gallery images
+    const byIndex = new Map<number, HTMLImageElement>()
     galleryImages.forEach((img) => {
-      img.addEventListener('click', handleImageClick as EventListener)
+      const idx = Number(img.dataset.index ?? NaN)
+      if (!Number.isNaN(idx)) byIndex.set(idx, img)
     })
 
-    // Close zoom when clicking on the overlay
-    overlay.addEventListener('click', handleCloseZoom)
+    const totalImages = byIndex.size
+    if (!totalImages) return
 
-    // Navigation event listeners with actual navigation functionality
+    let currentIndex = -1
+    let navToken = 0
+    let inactivityTimer: number | null = null
+
+    function preloadImage(src: string) {
+      const img = new Image()
+      img.src = src
+    }
+
+    function getByIndex(index: number) {
+      return byIndex.get(((index % totalImages) + totalImages) % totalImages)
+    }
+
+    function showIndex(index: number) {
+      const safeIndex = ((index % totalImages) + totalImages) % totalImages
+      const targetImg = getByIndex(safeIndex)
+      if (!targetImg) return
+
+      currentIndex = safeIndex
+      const token = ++navToken
+
+      const fullSrc = targetImg.dataset.fullsize || ''
+      const placeholderSrc = targetImg.dataset.placeholder || ''
+      const alt = targetImg.alt
+
+      // 1. Calculate Layout
+      const naturalW = Number(targetImg.dataset.fullwidth) || 800
+      const naturalH = Number(targetImg.dataset.fullheight) || 600
+
+      const maxW = window.innerWidth * 0.9
+      const maxH = window.innerHeight * 0.9
+
+      const ratio = naturalW / naturalH
+      let finalW = naturalW
+      let finalH = naturalH
+
+      if (finalW > maxW) {
+        finalW = maxW
+        finalH = finalW / ratio
+      }
+      if (finalH > maxH) {
+        finalH = maxH
+        finalW = finalH * ratio
+      }
+
+      imageStack.style.width = `${finalW}px`
+      imageStack.style.height = `${finalH}px`
+
+      // 2. Check for Cache / Preload
+      const imgLoader = new Image()
+      imgLoader.src = fullSrc // Triggers browser cache check
+
+      // Update Alt text immediately
+      overlayFull.alt = alt
+
+      if (imgLoader.complete) {
+        // --- CACHE HIT: INSTANT SWAP ---
+        overlayFull.style.transition = 'none' // Disable fade
+        overlayFull.src = fullSrc
+        overlayFull.style.opacity = '1'
+        // We can hide placeholder or leave it behind, doesn't matter
+      } else {
+        // --- CACHE MISS: SHOW PLACEHOLDER & LOAD ---
+
+        // Hide Old Full Image
+        overlayFull.style.transition = 'none'
+        overlayFull.style.opacity = '0'
+        overlayFull.src = ''
+
+        // Show New Placeholder
+        overlayPlaceholder.src = placeholderSrc
+        overlayPlaceholder.style.opacity = '1'
+
+        imgLoader.onload = () => {
+          if (token !== navToken) return
+
+          overlayFull.src = fullSrc
+
+          requestAnimationFrame(() => {
+            overlayFull.style.transition = '' // Re-enable CSS transition
+            overlayFull.style.opacity = '1'
+          })
+        }
+      }
+
+      // Preload next/prev
+      const next = getByIndex(currentIndex + 1)
+      const prev = getByIndex(currentIndex - 1)
+      if (next?.dataset.fullsize) preloadImage(next.dataset.fullsize)
+      if (prev?.dataset.fullsize) preloadImage(prev.dataset.fullsize)
+    }
+
+    function openOverlay(index: number) {
+      if (index < 0) return
+      document.body.style.overflow = 'hidden'
+      overlay.classList.remove('hidden')
+      overlay.setAttribute('aria-hidden', 'false')
+
+      showIndex(index)
+
+      requestAnimationFrame(() => {
+        overlay.classList.remove('opacity-0')
+        showButtons()
+      })
+
+      document.addEventListener('keydown', onKeyDown)
+    }
+
+    function closeOverlay() {
+      overlay.classList.add('opacity-0')
+      overlay.setAttribute('aria-hidden', 'true')
+
+      setTimeout(() => {
+        overlay.classList.add('hidden')
+        overlayFull.src = ''
+        overlayPlaceholder.src = ''
+        document.body.style.overflow = ''
+      }, 300)
+
+      document.removeEventListener('keydown', onKeyDown)
+    }
+
+    function showButtons() {
+      prevButton.style.opacity = '1'
+      nextButton.style.opacity = '1'
+      closeButton.style.opacity = '1'
+
+      if (inactivityTimer) clearTimeout(inactivityTimer)
+      if (window.innerWidth > 640) {
+        inactivityTimer = window.setTimeout(() => {
+          prevButton.style.opacity = '0'
+          nextButton.style.opacity = '0'
+          closeButton.style.opacity = '0'
+        }, 3000)
+      }
+    }
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') closeOverlay()
+      if (e.key === 'ArrowLeft') showIndex(currentIndex - 1)
+      if (e.key === 'ArrowRight') showIndex(currentIndex + 1)
+    }
+
+    window.addEventListener('resize', () => {
+      if (!overlay.classList.contains('hidden') && currentIndex !== -1) {
+        showIndex(currentIndex)
+      }
+    })
+
+    galleryImages.forEach((img) => {
+      img.addEventListener('click', (e) => {
+        const idx = Number((e.currentTarget as HTMLElement).dataset.index)
+        openOverlay(idx)
+      })
+    })
+
+    closeButton.addEventListener('click', (e) => {
+      e.stopPropagation()
+      closeOverlay()
+    })
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay || e.target === overlayContainer) {
+        closeOverlay()
+      }
+    })
+
+    overlay.addEventListener('mousemove', showButtons)
+
     prevButton.addEventListener('click', (e) => {
       e.stopPropagation()
-      navigateGallery(-1)
+      showIndex(currentIndex - 1)
     })
 
     nextButton.addEventListener('click', (e) => {
       e.stopPropagation()
-      navigateGallery(1)
+      showIndex(currentIndex + 1)
     })
+
+    setupDeferredImageLoading()
   }
 
-  // Run setup when the DOM is ready
-  document.addEventListener('DOMContentLoaded', setupGallery)
-
-  // Also handle astro:page-load for Astro's view transitions
   document.addEventListener('astro:page-load', setupGallery)
+  document.addEventListener('DOMContentLoaded', setupGallery)
 </script>

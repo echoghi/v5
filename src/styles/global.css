@@ -351,6 +351,10 @@
   }
 }
 
+#overlay-full {
+  transition: opacity 150ms ease;
+}
+
 .gallery-item {
   @apply rounded-sm transition-all;
 }
