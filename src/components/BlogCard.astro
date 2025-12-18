@@ -1,12 +1,14 @@
 ---
+import Link from '@/components/Link.astro'
 import AvatarComponent from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import VisitorCount from '@/components/VisitorCount.tsx'
 import { parseAuthors } from '@/lib/server-utils'
 import { formatDate, readingTime } from '@/lib/utils'
+import { Icon } from 'astro-icon/components'
 import { Image } from 'astro:assets'
 import type { CollectionEntry } from 'astro:content'
-import Link from './Link.astro'
 
 type Props = {
   entry: CollectionEntry<'blog'>
@@ -72,7 +74,11 @@ const authors = await parseAuthors(entry.data.authors ?? [])
         }
         <span>{formattedDate}</span>
         <Separator orientation="vertical" className="h-4" />
-        <span>{readTime}</span>
+        <VisitorCount path={`/${entry.collection}/${entry.id}`} client:load />
+        <Separator orientation="vertical" className="h-4" />
+        <span class="flex items-center gap-1"
+          ><Icon name="lucide:clock" class="size-3" />{readTime}</span
+        >
       </div>
       {
         entry.data.tags && (

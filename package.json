@@ -43,7 +43,7 @@
     "bootstrap-icons": "^1.11.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
-    "dotenv": "^17.2.2",
+    "dotenv": "^17.2.3",
     "image-size": "^2.0.2",
     "lucide-react": "^0.441.0",
     "plausible-tracker": "^0.3.9",

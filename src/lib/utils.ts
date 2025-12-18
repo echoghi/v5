@@ -25,7 +25,7 @@ export function readingTimeMinutes(html: string): number {
 
 export function readingTime(html: string) {
   const minutes = readingTimeMinutes(html).toFixed()
-  return `${minutes} min read`
+  return `${minutes} min`
 }
 
 export function isLongArticle(html: string): boolean {

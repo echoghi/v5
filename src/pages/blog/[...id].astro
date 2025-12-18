@@ -6,6 +6,7 @@ import ScrollTop from '@/components/ScrollTop.astro'
 import TableOfContents from '@/components/TableOfContents.astro'
 import { badgeVariants } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import VisitorCount from '@/components/VisitorCount'
 import Layout from '@/layouts/Layout.astro'
 import { parseAuthors } from '@/lib/server-utils'
 import { formatDate, isLongArticle, readingTime } from '@/lib/utils'
@@ -123,7 +124,13 @@ const authors = await parseAuthors(post.data.authors ?? [])
           <div class="flex items-center gap-2">
             <span>{formatDate(post.data.date)}</span>
             <Separator orientation="vertical" className="h-4" />
-            <span>{readingTime(post.body!)}</span>
+            <VisitorCount path={`/${post.collection}/${post.id}`} client:load />
+            <Separator orientation="vertical" className="h-4" />
+            <span class="flex items-center gap-1"
+              ><Icon name="lucide:clock" class="size-3" />{
+                readingTime(post.body!)
+              }</span
+            >
           </div>
         </div>
         <div class="flex flex-wrap justify-center gap-2">

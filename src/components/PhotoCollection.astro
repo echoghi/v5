@@ -1,9 +1,12 @@
 ---
+import Link from '@/components/Link.astro'
+import { Separator } from '@/components/ui/separator'
+import VisitorCount from '@/components/VisitorCount.tsx'
 import { getPhotoCount } from '@/lib/server-utils'
 import { formatDate } from '@/lib/utils'
+import { Icon } from 'astro-icon/components'
 import { Image } from 'astro:assets'
 import type { CollectionEntry } from 'astro:content'
-import Link from './Link.astro'
 
 type Props = {
   collection: CollectionEntry<'photos'>
@@ -18,7 +21,6 @@ const formattedDate = collection.data.date
   : ''
 const displayDate = collection.data.period || formattedDate
 
-// Get photo count using the utility function
 const photoCount = await getPhotoCount(collection.id)
 ---
 
@@ -51,8 +53,15 @@ const photoCount = await getPhotoCount(collection.id)
         class="mb-2 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground"
       >
         <span>{displayDate}</span>
-        <span class="text-muted-foreground">|</span>
-        <span>{photoCount} photos</span>
+        <Separator orientation="vertical" className="h-4" />
+        <span class="flex items-center gap-1"
+          ><Icon name="lucide:image" class="size-3" /> {photoCount}</span
+        >
+        <Separator orientation="vertical" className="h-4" />
+        <VisitorCount
+          path={`/${collection.collection}/${collection.id}`}
+          client:load
+        />
       </div>
       <p class="mb-2 text-sm text-muted-foreground">
         {collection.data.description}
