@@ -6,6 +6,8 @@ import Layout from '@/layouts/Layout.astro'
 import { Icon } from 'astro-icon/components'
 import { type CollectionEntry, getCollection } from 'astro:content'
 
+export const prerender = true
+
 type BlogPost = CollectionEntry<'blog'>
 
 type Props = {
