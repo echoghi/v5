@@ -8,8 +8,6 @@ import Layout from '@/layouts/Layout.astro'
 import { getAlbumImages } from '@/lib/server-utils'
 import { type CollectionEntry, getCollection } from 'astro:content'
 
-export const prerender = true
-
 export async function getStaticPaths() {
   const photos = await getCollection('photos')
   return photos.map((collection) => ({

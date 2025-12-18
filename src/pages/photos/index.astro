@@ -5,8 +5,6 @@ import PhotoCollection from '@/components/PhotoCollection.astro'
 import Layout from '@/layouts/Layout.astro'
 import { getCollection } from 'astro:content'
 
-export const prerender = true
-
 const photoCollections = await getCollection('photos')
 // Sort collections by date (newest first)
 const sortedPhotoCollections = photoCollections.sort((a, b) => {

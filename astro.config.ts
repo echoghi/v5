@@ -19,11 +19,12 @@ import sectionize from '@hbsnow/rehype-sectionize'
 
 import icon from 'astro-icon'
 
-import node from '@astrojs/node'
+import vercel from '@astrojs/vercel';
 
 // https://astro.build/config
 export default defineConfig({
   site: 'https://emile.sh',
+
   integrations: [
     tailwind({
       applyBaseStyles: false,
@@ -33,7 +34,9 @@ export default defineConfig({
     react(),
     icon(),
   ],
+
   trailingSlash: 'never',
+
   markdown: {
     syntaxHighlight: false,
     rehypePlugins: [
@@ -68,15 +71,15 @@ export default defineConfig({
     ],
     remarkPlugins: [remarkToc, remarkMath, remarkEmoji],
   },
+
   server: {
     port: 1234,
     host: true,
   },
+
   devToolbar: {
     enabled: false,
   },
-  output: 'server',
-  adapter: node({
-    mode: 'standalone',
-  }),
+
+  adapter: vercel(),
 })
