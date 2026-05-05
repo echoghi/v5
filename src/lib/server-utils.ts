@@ -1,7 +1,4 @@
-import {
-  S3Client,
-  ListObjectsV2Command,
-} from '@aws-sdk/client-s3'
+import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3'
 import sharp from 'sharp'
 import { getEntry } from 'astro:content'
 import dotenv from 'dotenv'
@@ -19,11 +16,11 @@ export const r2 = new S3Client({
   },
 })
 
-interface FullSizeImage extends ImageMetadata {
+type FullSizeImage = Omit<ImageMetadata, 'src' | 'width' | 'height'> & {
   src: string
   hash: string
-  width: number
-  height: number
+  width?: number
+  height?: number
   blurDataUrl: string
 }
 
@@ -121,8 +118,8 @@ export async function getFullSizeImages(
     return {
       ...img,
       src: `https://${process.env.R2_PUBLIC_DOMAIN}/${id}/${cleanedFileName}`,
-      width: img.width || 800,
-      height: img.height || 600,
+      width: img.width,
+      height: img.height,
       hash,
       blurDataUrl: '',
     }

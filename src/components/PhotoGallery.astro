@@ -27,6 +27,11 @@ const items: GalleryItem[] = images.map((image, index) => ({
   index,
 }))
 
+function getAspectRatioStyle(image: ImageMetadata) {
+  if (!image.width || !image.height) return undefined
+  return `aspect-ratio:${image.width}/${image.height};`
+}
+
 const cols: GalleryItem[][] = Array.from({ length: MAX_COLS }, () => [])
 const heights = Array.from({ length: MAX_COLS }, () => 0)
 
@@ -56,10 +61,10 @@ const EAGER_COUNT = 15
           {col.map(({ image, full, index }) => (
             <div
               class="relative break-inside-avoid"
-              style={`aspect-ratio:${image.width || 800}/${image.height || 600};`}
+              style={getAspectRatioStyle(image)}
             >
               <img
-                src={index < EAGER_COUNT ? image.src : ''}
+                src={index < EAGER_COUNT ? image.src : undefined}
                 data-src={index < EAGER_COUNT ? undefined : image.src}
                 alt={`Photo ${index + 1} from my trip to ${name}`}
                 loading={index < EAGER_COUNT ? 'eager' : 'lazy'}
@@ -72,9 +77,9 @@ const EAGER_COUNT = 15
                 data-fullwidth={full.width}
                 data-fullheight={full.height}
                 data-placeholder={full.blurDataUrl}
-                width={image.width || 800}
-                height={image.height || 600}
-                sizes={`(max-width: 360px) 360px, (max-width: 720px) 720px, (max-width: 1200px) 1200px, ${image.width}px`}
+                width={image.width}
+                height={image.height}
+                sizes={`(max-width: 360px) 360px, (max-width: 720px) 720px, (max-width: 1200px) 1200px, ${image.width || 610}px`}
               />
             </div>
           ))}
@@ -251,10 +256,15 @@ const EAGER_COUNT = 15
       const fullSrc = targetImg.dataset.fullsize || ''
       const placeholderSrc = targetImg.dataset.placeholder || ''
       const alt = targetImg.alt
+      const hasKnownSize =
+        Boolean(targetImg.dataset.fullwidth) &&
+        Boolean(targetImg.dataset.fullheight)
 
       // 1. Calculate Layout
-      const naturalW = Number(targetImg.dataset.fullwidth) || 800
-      const naturalH = Number(targetImg.dataset.fullheight) || 600
+      const naturalW =
+        Number(targetImg.dataset.fullwidth) || targetImg.naturalWidth || 800
+      const naturalH =
+        Number(targetImg.dataset.fullheight) || targetImg.naturalHeight || 600
 
       const maxW = window.innerWidth * 0.9
       const maxH = window.innerHeight * 0.9
@@ -287,21 +297,48 @@ const EAGER_COUNT = 15
         overlayFull.style.transition = 'none' // Disable fade
         overlayFull.src = fullSrc
         overlayFull.style.opacity = '1'
-        // We can hide placeholder or leave it behind, doesn't matter
+        overlayPlaceholder.removeAttribute('src')
+        overlayPlaceholder.style.opacity = '0'
       } else {
         // --- CACHE MISS: SHOW PLACEHOLDER & LOAD ---
 
         // Hide Old Full Image
         overlayFull.style.transition = 'none'
         overlayFull.style.opacity = '0'
-        overlayFull.src = ''
+        overlayFull.removeAttribute('src')
 
-        // Show New Placeholder
-        overlayPlaceholder.src = placeholderSrc
-        overlayPlaceholder.style.opacity = '1'
+        if (placeholderSrc) {
+          overlayPlaceholder.src = placeholderSrc
+          overlayPlaceholder.style.opacity = '1'
+        } else {
+          overlayPlaceholder.removeAttribute('src')
+          overlayPlaceholder.style.opacity = '0'
+        }
 
         imgLoader.onload = () => {
           if (token !== navToken) return
+
+          if (
+            !hasKnownSize &&
+            imgLoader.naturalWidth &&
+            imgLoader.naturalHeight
+          ) {
+            const loadedRatio = imgLoader.naturalWidth / imgLoader.naturalHeight
+            let loadedW = imgLoader.naturalWidth
+            let loadedH = imgLoader.naturalHeight
+
+            if (loadedW > maxW) {
+              loadedW = maxW
+              loadedH = loadedW / loadedRatio
+            }
+            if (loadedH > maxH) {
+              loadedH = maxH
+              loadedW = loadedH * loadedRatio
+            }
+
+            imageStack.style.width = `${loadedW}px`
+            imageStack.style.height = `${loadedH}px`
+          }
 
           overlayFull.src = fullSrc
 
