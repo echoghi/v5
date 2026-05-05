@@ -193,15 +193,23 @@ Run:
 npm run process-images
 ```
 
+To process only specific galleries, pass their slugs after `--`:
+
+```bash
+npm run process-images -- thailand vietnam
+```
+
 #### What this does
 
 - **Clears existing gallery images from Cloudflare R2**, while preserving anything under `albums/`
+  - When specific gallery slugs are provided, only those R2 prefixes are cleared
 
 - **Scans all gallery folders** in `src/content/photos/`
+  - When specific gallery slugs are provided, only those galleries are scanned
 
 - For each gallery:
   - Reads raw images from `photos/<album-slug>-source/`
-  - Generates a **unique hash-based filename** per image
+  - Generates a **stable hash-based filename** per image
   - Creates and uploads:
     - A **full-size WebP** (max height 900px)
     - A **preview JPEG** (≈610px wide)

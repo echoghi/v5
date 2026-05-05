@@ -1,8 +1,6 @@
 import {
   S3Client,
   ListObjectsV2Command,
-  HeadObjectCommand,
-  GetObjectCommand,
 } from '@aws-sdk/client-s3'
 import sharp from 'sharp'
 import { getEntry } from 'astro:content'
@@ -109,67 +107,26 @@ export async function getFullSizeImages(
   images: ImageMetadata[],
   id: string,
 ): Promise<FullSizeImage[]> {
-  return await Promise.all(
-    images.map(async (img) => {
-      const fileName = img.src.split('/').pop()
-      if (!fileName) return img as FullSizeImage
+  return images.map((img) => {
+    const fileName = img.src.split('/').pop()
+    if (!fileName) return img as FullSizeImage
 
-      const cleanedFileName = fileName
-        .replace('-preview', '')
-        .split('?')[0]
-        .replace(/\.(jpe?g|png)$/i, '.webp')
+    const cleanedFileName = fileName
+      .replace('-preview', '')
+      .split('?')[0]
+      .replace(/\.(jpe?g|png)$/i, '.webp')
 
-      const hash = cleanedFileName.split('.')[0]
-      const key = `${id}/${cleanedFileName}`
+    const hash = cleanedFileName.split('.')[0]
 
-      let width = img.width
-      let height = img.height
-      let blurDataUrl: string | undefined
-
-      try {
-        // Check object exists
-        await r2.send(
-          new HeadObjectCommand({
-            Bucket: process.env.BUCKET!,
-            Key: key,
-          }),
-        )
-
-        // Fetch actual file to compute dimensions + blur
-        const obj = await r2.send(
-          new GetObjectCommand({
-            Bucket: process.env.BUCKET!,
-            Key: key,
-          }),
-        )
-
-        const buffer = obj.Body
-          ? Buffer.from(await obj.Body.transformToByteArray())
-          : undefined
-
-        if (buffer) {
-          const metadata = await sharp(buffer).metadata()
-          if (metadata.width && metadata.height) {
-            width = metadata.width
-            height = metadata.height
-          }
-
-          blurDataUrl = await generateBlurPlaceholder(buffer)
-        }
-      } catch (err) {
-        console.warn(`Error processing ${key}:`, err)
-      }
-
-      return {
-        ...img,
-        src: `https://${process.env.R2_PUBLIC_DOMAIN}/${id}/${cleanedFileName}`,
-        width,
-        height,
-        hash,
-        blurDataUrl: blurDataUrl || '',
-      }
-    }),
-  )
+    return {
+      ...img,
+      src: `https://${process.env.R2_PUBLIC_DOMAIN}/${id}/${cleanedFileName}`,
+      width: img.width || 800,
+      height: img.height || 600,
+      hash,
+      blurDataUrl: '',
+    }
+  })
 }
 
 export async function getAlbumImages(

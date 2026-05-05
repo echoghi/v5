@@ -28,14 +28,31 @@ const r2 = new S3Client({
 // ==== PATHS ====
 const repoRoot = process.cwd()
 const photosDir = path.join(repoRoot, 'src/content/photos')
+const requestedBaseDirs = process.argv.slice(2)
 
 // ==== HELPERS ====
-function generateRandomHash() {
-  return crypto.randomBytes(8).toString('hex')
+function generateImageHash(baseDir, file, inputPath) {
+  const hash = crypto.createHash('sha256')
+  hash.update(baseDir)
+  hash.update('\0')
+  hash.update(file)
+  hash.update('\0')
+  hash.update(fs.readFileSync(inputPath))
+  return hash.digest('hex').slice(0, 16)
 }
 
-async function clearBucket() {
-  console.log('🗑️  Clearing bucket before upload (excluding albums/)...')
+async function clearBucket(baseDirsToClear) {
+  const prefixesToClear = baseDirsToClear.map((baseDir) => `${baseDir}/`)
+  const isTargeted = prefixesToClear.length > 0
+
+  if (isTargeted) {
+    console.log(
+      `🗑️  Clearing targeted R2 prefixes: ${prefixesToClear.join(', ')}`,
+    )
+  } else {
+    console.log('🗑️  Clearing bucket before upload (excluding albums/)...')
+  }
+
   let continuationToken
 
   do {
@@ -47,10 +64,18 @@ async function clearBucket() {
     )
 
     if (listResp.Contents && listResp.Contents.length > 0) {
-      // ❌ exclude anything under albums/
-      const objectsToDelete = listResp.Contents.filter(
-        (obj) => obj.Key && !obj.Key.startsWith('albums/'),
-      ).map((obj) => ({ Key: obj.Key }))
+      const objectsToDelete = listResp.Contents.filter((obj) => {
+        if (!obj.Key) {
+          return false
+        }
+
+        if (isTargeted) {
+          return prefixesToClear.some((prefix) => obj.Key.startsWith(prefix))
+        }
+
+        // ❌ exclude anything under albums/
+        return !obj.Key.startsWith('albums/')
+      }).map((obj) => ({ Key: obj.Key }))
 
       if (objectsToDelete.length > 0) {
         await r2.send(
@@ -70,7 +95,11 @@ async function clearBucket() {
     continuationToken = listResp.NextContinuationToken
   } while (continuationToken)
 
-  console.log('✅ Bucket cleared (albums/ preserved)')
+  if (isTargeted) {
+    console.log('✅ Targeted prefixes cleared')
+  } else {
+    console.log('✅ Bucket cleared (albums/ preserved)')
+  }
 }
 
 async function uploadToR2(key, buffer, contentType) {
@@ -87,16 +116,29 @@ async function uploadToR2(key, buffer, contentType) {
 
 // ==== MAIN ====
 ;(async () => {
-  // Clear bucket first
-  await clearBucket()
-
   // Discover base directories
-  const baseDirs = fs
+  const allBaseDirs = fs
     .readdirSync(photosDir, { withFileTypes: true })
     .filter((dirent) => dirent.isDirectory())
     .map((dirent) => dirent.name)
 
+  const unknownBaseDirs = requestedBaseDirs.filter(
+    (baseDir) => !allBaseDirs.includes(baseDir),
+  )
+
+  if (unknownBaseDirs.length > 0) {
+    throw new Error(
+      `Unknown photo directories: ${unknownBaseDirs.join(', ')}. Available directories: ${allBaseDirs.join(', ')}`,
+    )
+  }
+
+  const baseDirs =
+    requestedBaseDirs.length > 0 ? requestedBaseDirs : allBaseDirs
+
   console.log(`Found directories: ${baseDirs.join(', ')}`)
+
+  // Clear bucket or selected prefixes first
+  await clearBucket(requestedBaseDirs)
 
   sharp.cache(false)
 
@@ -121,18 +163,10 @@ async function uploadToR2(key, buffer, contentType) {
       continue
     }
 
-    const generatedHashes = new Set()
-
     for (const file of files) {
       const inputPath = path.join(inputDir, file)
       const extension = path.extname(file)
-
-      // unique random hash
-      let randomHash
-      do {
-        randomHash = generateRandomHash()
-      } while (generatedHashes.has(randomHash))
-      generatedHashes.add(randomHash)
+      const imageHash = generateImageHash(baseDir, file, inputPath)
 
       // FULL SIZE → webp
       const fullBuffer = await sharp(inputPath, { failOnError: false })
@@ -147,7 +181,7 @@ async function uploadToR2(key, buffer, contentType) {
         .toBuffer()
 
       await uploadToR2(
-        `${baseDir}/${randomHash}.webp`,
+        `${baseDir}/${imageHash}.webp`,
         fullBuffer,
         'image/webp',
       )
@@ -165,13 +199,13 @@ async function uploadToR2(key, buffer, contentType) {
         .toBuffer()
 
       await uploadToR2(
-        `${baseDir}/${randomHash}-preview${extension.toLowerCase()}`,
+        `${baseDir}/${imageHash}-preview${extension.toLowerCase()}`,
         previewBuffer,
         'image/jpeg',
       )
 
       console.log(
-        `[${baseDir}] Processed ${file} → ${randomHash}.webp & ${randomHash}-preview${extension}`,
+        `[${baseDir}] Processed ${file} → ${imageHash}.webp & ${imageHash}-preview${extension}`,
       )
     }
   }
