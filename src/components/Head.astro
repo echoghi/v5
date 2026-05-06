@@ -70,7 +70,17 @@ const { title, description, image = '/static/twitter-card.png' } = Astro.props
         : 'theme-light'
     }
     const isDark = getThemePreference() === 'dark'
+
+    document.documentElement.classList.add('disable-transitions')
     document.documentElement.classList[isDark ? 'add' : 'remove']('dark')
+
+    window
+      .getComputedStyle(document.documentElement)
+      .getPropertyValue('opacity')
+
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove('disable-transitions')
+    })
 
     if (typeof localStorage !== 'undefined') {
       const observer = new MutationObserver(() => {
@@ -85,6 +95,13 @@ const { title, description, image = '/static/twitter-card.png' } = Astro.props
   }
 
   setDarkMode(document)
+
+  if (!window.__themeMediaQueryInitialized) {
+    window.__themeMediaQueryInitialized = true
+    window
+      .matchMedia('(prefers-color-scheme: dark)')
+      .addEventListener('change', () => setDarkMode(document))
+  }
 
   document.addEventListener('astro:before-swap', (ev) => {
     // Pass the incoming document to set the theme on it
