@@ -15,14 +15,13 @@
     "process-audio": "./scripts/process-audio-waveforms.sh --all"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.6",
+    "@astrojs/check": "^0.9.9",
     "@astrojs/markdown-remark": "^6.3.10",
-    "@astrojs/mdx": "^4.3.13",
+    "@astrojs/mdx": "^5.0.4",
     "@astrojs/react": "^4.4.2",
-    "@astrojs/rss": "^4.0.14",
-    "@astrojs/sitemap": "^3.6.0",
-    "@astrojs/tailwind": "^6.0.2",
-    "@astrojs/vercel": "^9.0.2",
+    "@astrojs/rss": "^4.0.18",
+    "@astrojs/sitemap": "^3.7.2",
+    "@astrojs/vercel": "^10.0.6",
     "@aws-sdk/client-s3": "^3.893.0",
     "@hbsnow/rehype-sectionize": "^1.0.7",
     "@iconify-json/lucide": "^1.2.4",
@@ -39,7 +38,7 @@
     "@shikijs/transformers": "^1.16.3",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
-    "astro": "^5.16.6",
+    "astro": "^6.2.2",
     "astro-icon": "^1.1.5",
     "bootstrap-icons": "^1.11.3",
     "class-variance-authority": "^0.7.0",
@@ -63,10 +62,20 @@
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.13",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.14",
     "prettier": "^3.2.5",
     "prettier-plugin-astro": "^0.13.0",
     "prettier-plugin-astro-organize-imports": "^0.4.9",
     "prettier-plugin-tailwindcss": "^0.5.14"
+  },
+  "overrides": {
+    "@vercel/routing-utils": {
+      "path-to-regexp": "6.3.0"
+    },
+    "yaml-language-server": {
+      "yaml": "2.8.4"
+    }
   },
   "prettier": {
     "semi": false,

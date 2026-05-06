@@ -2,7 +2,6 @@ import { rehypeHeadingIds } from '@astrojs/markdown-remark'
 import mdx from '@astrojs/mdx'
 import react from '@astrojs/react'
 import sitemap from '@astrojs/sitemap'
-import tailwind from '@astrojs/tailwind'
 import { transformerCopyButton } from '@rehype-pretty/transformers'
 import {
   transformerMetaHighlight,
@@ -26,9 +25,6 @@ export default defineConfig({
   site: 'https://emile.sh',
 
   integrations: [
-    tailwind({
-      applyBaseStyles: false,
-    }),
     sitemap(),
     mdx(),
     react(),
