@@ -245,6 +245,22 @@ const EAGER_COUNT = 15
       return byIndex.get(((index % totalImages) + totalImages) % totalImages)
     }
 
+    function getOverlaySize(width: number, height: number) {
+      const maxW = window.innerWidth * 0.9
+      const targetH = window.innerHeight * 0.9
+      const ratio = width / height
+
+      let finalH = targetH
+      let finalW = finalH * ratio
+
+      if (finalW > maxW) {
+        finalW = maxW
+        finalH = finalW / ratio
+      }
+
+      return { width: finalW, height: finalH }
+    }
+
     function showIndex(index: number) {
       const safeIndex = ((index % totalImages) + totalImages) % totalImages
       const targetImg = getByIndex(safeIndex)
@@ -266,21 +282,10 @@ const EAGER_COUNT = 15
       const naturalH =
         Number(targetImg.dataset.fullheight) || targetImg.naturalHeight || 600
 
-      const maxW = window.innerWidth * 0.9
-      const maxH = window.innerHeight * 0.9
-
-      const ratio = naturalW / naturalH
-      let finalW = naturalW
-      let finalH = naturalH
-
-      if (finalW > maxW) {
-        finalW = maxW
-        finalH = finalW / ratio
-      }
-      if (finalH > maxH) {
-        finalH = maxH
-        finalW = finalH * ratio
-      }
+      const { width: finalW, height: finalH } = getOverlaySize(
+        naturalW,
+        naturalH,
+      )
 
       imageStack.style.width = `${finalW}px`
       imageStack.style.height = `${finalH}px`
@@ -323,18 +328,10 @@ const EAGER_COUNT = 15
             imgLoader.naturalWidth &&
             imgLoader.naturalHeight
           ) {
-            const loadedRatio = imgLoader.naturalWidth / imgLoader.naturalHeight
-            let loadedW = imgLoader.naturalWidth
-            let loadedH = imgLoader.naturalHeight
-
-            if (loadedW > maxW) {
-              loadedW = maxW
-              loadedH = loadedW / loadedRatio
-            }
-            if (loadedH > maxH) {
-              loadedH = maxH
-              loadedW = loadedH * loadedRatio
-            }
+            const { width: loadedW, height: loadedH } = getOverlaySize(
+              imgLoader.naturalWidth,
+              imgLoader.naturalHeight,
+            )
 
             imageStack.style.width = `${loadedW}px`
             imageStack.style.height = `${loadedH}px`
