@@ -41,7 +41,6 @@ export const SITE: Site = {
 
 export const NAV_LINKS: Link[] = [
   { href: '/', label: 'home' },
-  { href: '/work', label: 'work' },
   { href: '/photos', label: 'photos' },
 ]
 
