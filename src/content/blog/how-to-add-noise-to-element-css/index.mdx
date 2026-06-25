@@ -4,7 +4,7 @@ previewDescription: 'Add "noise" to any element to produce a neat, grainy effect
 description: 'Easily add a stylish, grainy texture to any element with CSS. Learn how to create a subtle noise effect that adds depth and visual interest.'
 date: 2025-03-20
 tags: ['code', 'design']
-image: './noise-css-cover.webp'
+image: './noise-css-cover-grainy.webp'
 ---
 
 import { NoiseOverlay } from '../../../components/Noise'
@@ -17,18 +17,37 @@ The basic concept was that he had prompted his way to creating these clean, high
 
 Unfortunately, for design illiterate devs like me, the process involved a Figma plugin called "Shumi Noise", but it seemed like an easy CSS solution must exist. If you're interested in the original twitter thread, you can <a href="https://x.com/kubadesign/status/1883884665448325356" rel="nofollow noreferrer" target='_blank'>find it here</a>.
 
-Below is a simple proof of concept for an overlay that applies the effect to an image or any element the class is applied to. Simple adjust the opacity or base frequency to produce the desired level of graininess. Coupled with some crisp photography, AI artwork, or other design, the effect can make for some pretty epic landing pages with little effort.
+Below is a simple proof of concept for an overlay that applies the effect to an image or any element the class is applied to. Simply adjust the opacity or base frequency to produce the desired level of graininess. `baseFrequency` controls how tight or loose the noise pattern feels, `numOctaves` adds extra layers of texture, and the `opacity` on the SVG rectangle keeps the effect from overpowering the actual design. Coupled with some crisp photography, AI artwork, or other design, the effect can make for some pretty epic landing pages with little effort.
 
 <NoiseOverlay image="/noise-css-cover.webp" className="w-full" client:load />
 
+For a live page, I prefer keeping the grain as a CSS overlay so it can be adjusted without permanently changing the image. For static assets like the cover image or social preview card, baking in a heavier grain pass is totally reasonable since those surfaces won't run the interactive CSS.
+
 ```css title="noise-overlay.css" caption="Add this class to an element to apply noise"
+.noise {
+  position: relative;
+  overflow: hidden;
+}
+
 .noise::before {
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 1;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.3'/%3E%3C/svg%3E");
   pointer-events: none;
 }
 ```
 
-The effect generally looks best when applied to an entire hero section rather than just an image, and most designers pair it with a gradient effect to taper off the graininess towards the edges of the page. Its a clean way to soften up the bold colors and visual sharpness you usually get from AI image outputs in tools like Midjourney.
+The important bit is that `.noise` needs to be positioned relative, otherwise the absolutely positioned `::before` pseudo-element may try to cover some other ancestor instead of the element you meant to target. The `content` property is what makes the pseudo-element render, and `pointer-events: none` keeps the overlay from blocking buttons, links, or other interactive pieces underneath it.
+
+For example, you could apply it to a hero like this:
+
+```html title="index.html"
+<section class="hero noise">
+  <h1>Your landing page headline</h1>
+  <p>Some crisp copy over a crisp image.</p>
+</section>
+```
+
+The effect generally looks best when applied to an entire hero section rather than just an image, and most designers pair it with a gradient effect to taper off the graininess towards the edges of the page. It's a clean way to soften up the bold colors and visual sharpness you usually get from AI image outputs in tools like Midjourney.

@@ -73,6 +73,12 @@ export default defineConfig({
     host: true,
   },
 
+  vite: {
+    optimizeDeps: {
+      include: ['react-dom/client'],
+    },
+  },
+
   devToolbar: {
     enabled: false,
   },

@@ -1,4 +1,6 @@
 import * as React from 'react'
+import { Minus, Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -14,19 +16,31 @@ export function NoiseOverlay({ image, className = '' }: NoiseOverlayProps) {
   const [opacity, setOpacity] = React.useState(0.3)
   const [noiseEnabled, setNoiseEnabled] = React.useState(true)
 
-  const handleFrequencyChange = React.useCallback((value: number[]) => {
-    setBaseFrequency(value[0])
+  const updateBaseFrequency = React.useCallback((value: number) => {
+    setBaseFrequency(Math.min(2, Math.max(0.1, value)))
   }, [])
 
-  const handleOpacityChange = React.useCallback((value: number[]) => {
-    setOpacity(value[0])
+  const updateOpacity = React.useCallback((value: number) => {
+    setOpacity(Math.min(1, Math.max(0, value)))
   }, [])
+
+  const handleFrequencyChange = React.useCallback((value: number[]) => {
+    updateBaseFrequency(value[0])
+  }, [updateBaseFrequency])
+
+  const handleOpacityChange = React.useCallback((value: number[]) => {
+    updateOpacity(value[0])
+  }, [updateOpacity])
 
   const handleNoiseToggle = React.useCallback((checked: boolean) => {
     setNoiseEnabled(checked)
   }, [])
 
-  const noiseSvg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='${baseFrequency}' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='${opacity}'/%3E%3C/svg%3E`
+  const noiseSvg = React.useMemo(() => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="${baseFrequency}" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noise)" opacity="${opacity}"/></svg>`
+
+    return `data:image/svg+xml,${encodeURIComponent(svg)}`
+  }, [baseFrequency, opacity])
 
   return (
     <div>
@@ -55,26 +69,76 @@ export function NoiseOverlay({ image, className = '' }: NoiseOverlayProps) {
 
         <div className="space-y-2">
           <Label>Base Frequency: {baseFrequency.toFixed(2)}</Label>
-          <Slider
-            defaultValue={[baseFrequency]}
-            onValueChange={handleFrequencyChange}
-            min={0.1}
-            max={2}
-            step={0.05}
-            disabled={!noiseEnabled}
-          />
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-11 w-11"
+              aria-label="Decrease base frequency"
+              disabled={!noiseEnabled}
+              onClick={() => updateBaseFrequency(baseFrequency - 0.05)}
+            >
+              <Minus className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <Slider
+              value={[baseFrequency]}
+              onValueChange={handleFrequencyChange}
+              min={0.1}
+              max={2}
+              step={0.05}
+              disabled={!noiseEnabled}
+              aria-label="Base frequency"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-11 w-11"
+              aria-label="Increase base frequency"
+              disabled={!noiseEnabled}
+              onClick={() => updateBaseFrequency(baseFrequency + 0.05)}
+            >
+              <Plus className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-2">
           <Label>Opacity: {opacity.toFixed(2)}</Label>
-          <Slider
-            defaultValue={[opacity]}
-            onValueChange={handleOpacityChange}
-            min={0}
-            max={1}
-            step={0.05}
-            disabled={!noiseEnabled}
-          />
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-11 w-11"
+              aria-label="Decrease opacity"
+              disabled={!noiseEnabled}
+              onClick={() => updateOpacity(opacity - 0.05)}
+            >
+              <Minus className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <Slider
+              value={[opacity]}
+              onValueChange={handleOpacityChange}
+              min={0}
+              max={1}
+              step={0.05}
+              disabled={!noiseEnabled}
+              aria-label="Opacity"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-11 w-11"
+              aria-label="Increase opacity"
+              disabled={!noiseEnabled}
+              onClick={() => updateOpacity(opacity + 0.05)}
+            >
+              <Plus className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
