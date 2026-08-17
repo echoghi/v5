@@ -16,8 +16,6 @@ import remarkMath from 'remark-math'
 import remarkToc from 'remark-toc'
 import sectionize from '@hbsnow/rehype-sectionize'
 
-import icon from 'astro-icon'
-
 import vercel from '@astrojs/vercel';
 
 // https://astro.build/config
@@ -28,7 +26,6 @@ export default defineConfig({
     sitemap(),
     mdx(),
     react(),
-    icon(),
   ],
 
   trailingSlash: 'never',

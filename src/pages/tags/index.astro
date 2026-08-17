@@ -4,7 +4,7 @@ import Container from '@/components/Container.astro'
 import Link from '@/components/Link.astro'
 import { badgeVariants } from '@/components/ui/badge'
 import Layout from '@/layouts/Layout.astro'
-import { Icon } from 'astro-icon/components'
+import Icon from '@/components/Icon.astro'
 import { getCollection } from 'astro:content'
 
 const blog = (await getCollection('blog')).filter((post) => !post.data.draft)

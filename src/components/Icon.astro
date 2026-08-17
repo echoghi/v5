@@ -1,0 +1,33 @@
+---
+import { icons } from '@iconify-json/lucide'
+
+interface Props {
+  name: string
+  class?: string
+  [key: string]: unknown
+}
+
+const { name, ...attributes } = Astro.props
+const [prefix, iconName] = name.split(':')
+const alias = icons.aliases?.[iconName as keyof typeof icons.aliases]
+const resolvedName = alias?.parent ?? iconName
+const icon =
+  prefix === icons.prefix
+    ? icons.icons[resolvedName as keyof typeof icons.icons]
+    : undefined
+
+if (!icon) {
+  throw new Error(`Unknown icon: ${name}`)
+}
+
+const width = 'width' in icon ? icon.width : icons.width
+const height = 'height' in icon ? icon.height : icons.height
+---
+
+<svg
+  {...attributes}
+  viewBox={`0 0 ${width ?? 24} ${height ?? 24}`}
+  aria-hidden={attributes['aria-label'] ? undefined : 'true'}
+  role={attributes['aria-label'] ? 'img' : undefined}
+  set:html={icon.body}
+/>
