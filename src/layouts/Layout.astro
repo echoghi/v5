@@ -2,7 +2,8 @@
 import Footer from '@/components/Footer.astro'
 import Head from '@/components/Head.astro'
 import Header from '@/components/Header.astro'
-import { SITE } from '@/consts'
+import { analyticsConfig } from '@/lib/analytics-config'
+import { SITE } from '@/site.config'
 
 type Props = {
   title: string
@@ -22,12 +23,16 @@ const { title, description, image } = Astro.props
       image={image}
     />
 
-    <script
-      defer
-      is:inline
-      data-domain={import.meta.env.DOMAIN}
-      src={`${import.meta.env.ANALYTICS_URL}/js/script.outbound-links.tagged-events.js`}
-    ></script>
+    {
+      analyticsConfig && (
+        <script
+          defer
+          is:inline
+          data-domain={analyticsConfig.domain}
+          src={`${analyticsConfig.apiHost}/js/script.outbound-links.tagged-events.js`}
+        />
+      )
+    }
   </head>
   <body>
     <div

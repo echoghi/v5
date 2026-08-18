@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { NAV_LINKS } from '@/consts'
+import { NAV_LINKS } from '@/site.config'
 import { Archive, Briefcase, Home, Camera } from 'lucide-react'
 import { cn } from '@/lib/utils'
 

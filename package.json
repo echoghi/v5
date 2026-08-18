@@ -11,8 +11,7 @@
     "astro": "astro",
     "fonts": "./scripts/process-fonts.sh",
     "prettier": "prettier --write .",
-    "process-images": "node ./scripts/process-and-upload-images.cjs",
-    "process-audio": "./scripts/process-audio-waveforms.sh --all"
+    "process-images": "node ./scripts/process-and-upload-images.cjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.9",

@@ -2,7 +2,7 @@
 import '../styles/global.css'
 import '../styles/katex.css'
 
-import { SITE } from '@/consts'
+import { SITE } from '@/site.config'
 import { ClientRouter } from 'astro:transitions'
 
 interface Props {
@@ -11,7 +11,7 @@ interface Props {
   image?: string
 }
 
-const canonicalURL = new URL(Astro.url.pathname, Astro.site)
+const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? Astro.url)
 
 const { title, description, image = '/static/twitter-card.png' } = Astro.props
 ---

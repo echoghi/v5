@@ -4,7 +4,9 @@ import Container from '@/components/Container.astro'
 import MusicPlayer from '@/components/MusicPlayer.tsx'
 import PhotoGallery from '@/components/PhotoGallery.astro'
 import ScrollTop from '@/components/ScrollTop.astro'
+import { songs } from '@/consts'
 import Layout from '@/layouts/Layout.astro'
+import { getPublicMediaUrl } from '@/lib/server-config'
 import { getAlbumImages } from '@/lib/server-utils'
 import { type CollectionEntry, getCollection } from 'astro:content'
 
@@ -20,10 +22,20 @@ type Props = CollectionEntry<'photos'>
 const collection = Astro.props
 
 const galleryImages = await getAlbumImages(collection.id)
+const hasMusic = Boolean(songs[collection.id]?.length)
+const albumArtworkBaseUrl = getPublicMediaUrl('albums') ?? undefined
 ---
 
 <Layout title={collection.data.name} description={collection.data.description}>
-  <MusicPlayer client:load id={collection.id} />
+  {
+    hasMusic ? (
+      <MusicPlayer
+        client:load
+        id={collection.id}
+        albumArtworkBaseUrl={albumArtworkBaseUrl}
+      />
+    ) : null
+  }
   <Container class="flex flex-col gap-y-6">
     <section class="mx-auto">
       <Breadcrumbs

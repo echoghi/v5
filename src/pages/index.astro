@@ -4,8 +4,8 @@ import Container from '@/components/Container.astro'
 import Link from '@/components/Link.astro'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { SITE } from '@/consts'
 import Layout from '@/layouts/Layout.astro'
+import { SITE } from '@/site.config'
 import { getCollection } from 'astro:content'
 
 const blog = (await getCollection('blog'))

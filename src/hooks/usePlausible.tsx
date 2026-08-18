@@ -1,17 +1,16 @@
 import { useEffect, useRef } from 'react'
 import Plausible from 'plausible-tracker'
-
-// Configuration based on .env
-const PLAUSIBLE_DOMAIN = import.meta.env.DOMAIN || 'emile.sh'
-const ANALYTICS_URL = import.meta.env.ANALYTICS_URL || 'https://plausible.io'
+import { analyticsConfig } from '@/lib/analytics-config'
 
 let plausibleInstance: ReturnType<typeof Plausible> | null = null
 
 const getPlausibleInstance = () => {
+  if (!analyticsConfig) return null
+
   if (!plausibleInstance) {
     plausibleInstance = Plausible({
-      domain: PLAUSIBLE_DOMAIN,
-      apiHost: ANALYTICS_URL,
+      domain: analyticsConfig.domain,
+      apiHost: analyticsConfig.apiHost,
       trackLocalhost: false,
     })
   }
@@ -23,7 +22,7 @@ export const usePlausible = () => {
 
   useEffect(() => {
     // Initialize plausible on client side only
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && analyticsConfig) {
       plausibleRef.current = getPlausibleInstance()
     }
   }, [])

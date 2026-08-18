@@ -1,10 +1,11 @@
 ---
+import Icon from '@/components/Icon.astro'
 import Link from '@/components/Link.astro'
 import { Separator } from '@/components/ui/separator'
 import VisitorCount from '@/components/VisitorCount.tsx'
+import { pageviewAnalyticsConfig } from '@/lib/server-config'
 import { getPhotoCount } from '@/lib/server-utils'
 import { formatDate } from '@/lib/utils'
-import Icon from '@/components/Icon.astro'
 import { Image } from 'astro:assets'
 import type { CollectionEntry } from 'astro:content'
 
@@ -57,11 +58,17 @@ const photoCount = await getPhotoCount(collection.id)
         <span class="flex items-center gap-1"
           ><Icon name="lucide:image" class="size-3" /> {photoCount}</span
         >
-        <Separator orientation="vertical" className="h-4" />
-        <VisitorCount
-          path={`/${collection.collection}/${collection.id}`}
-          client:load
-        />
+        {
+          pageviewAnalyticsConfig && (
+            <>
+              <Separator orientation="vertical" className="h-4" />
+              <VisitorCount
+                path={`/${collection.collection}/${collection.id}`}
+                client:load
+              />
+            </>
+          )
+        }
       </div>
       <p class="mb-2 text-sm text-muted-foreground">
         {collection.data.description}

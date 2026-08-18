@@ -1,5 +1,6 @@
 ---
 import Breadcrumbs from '@/components/Breadcrumbs.astro'
+import Icon from '@/components/Icon.astro'
 import Link from '@/components/Link.astro'
 import PostNavigation from '@/components/PostNavigation.astro'
 import ScrollTop from '@/components/ScrollTop.astro'
@@ -8,9 +9,9 @@ import { badgeVariants } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import VisitorCount from '@/components/VisitorCount'
 import Layout from '@/layouts/Layout.astro'
+import { pageviewAnalyticsConfig } from '@/lib/server-config'
 import { parseAuthors } from '@/lib/server-utils'
 import { formatDate, isLongArticle, readingTime } from '@/lib/utils'
-import Icon from '@/components/Icon.astro'
 import { Image } from 'astro:assets'
 import { type CollectionEntry, getCollection, render } from 'astro:content'
 
@@ -124,8 +125,17 @@ const authors = await parseAuthors(post.data.authors ?? [])
           <div class="flex items-center gap-2">
             <span>{formatDate(post.data.date)}</span>
             <Separator orientation="vertical" className="h-4" />
-            <VisitorCount path={`/${post.collection}/${post.id}`} client:load />
-            <Separator orientation="vertical" className="h-4" />
+            {
+              pageviewAnalyticsConfig && (
+                <>
+                  <VisitorCount
+                    path={`/${post.collection}/${post.id}`}
+                    client:load
+                  />
+                  <Separator orientation="vertical" className="h-4" />
+                </>
+              )
+            }
             <span class="flex items-center gap-1"
               ><Icon name="lucide:clock" class="size-3" />{
                 readingTime(post.body!)

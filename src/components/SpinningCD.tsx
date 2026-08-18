@@ -1,61 +1,12 @@
-import { useRef, useEffect } from 'react'
 import type { SongData } from '@/consts'
 
 export function SpinningCD({
   song,
   isPlaying,
-  hasInteracted,
 }: {
   song: SongData | null
   isPlaying: boolean
-  hasInteracted: boolean
 }) {
-  const cdRef = useRef<HTMLDivElement>(null)
-  const rotationRef = useRef(0)
-  const animationRef = useRef<number>()
-  const lastTimeRef = useRef<number>()
-
-  useEffect(() => {
-    if (!song) return
-
-    const cdElement = cdRef.current
-    if (!cdElement) return
-
-    const rotationSpeed = 270 // degrees per second (360° / 12s)
-
-    const animate = (currentTime: number) => {
-      if (!isPlaying) {
-        // Stop animation but keep current rotation
-        if (animationRef.current) {
-          cancelAnimationFrame(animationRef.current)
-        }
-        return
-      }
-
-      if (lastTimeRef.current !== undefined) {
-        const deltaTime = currentTime - lastTimeRef.current
-        const deltaRotation = (deltaTime * rotationSpeed) / 1000
-        rotationRef.current = rotationRef.current + deltaRotation
-      }
-
-      lastTimeRef.current = currentTime
-      cdElement.style.transform = `rotate(${rotationRef.current}deg)`
-
-      animationRef.current = requestAnimationFrame(animate)
-    }
-
-    if (isPlaying) {
-      lastTimeRef.current = undefined // Reset time reference when starting
-      animationRef.current = requestAnimationFrame(animate)
-    }
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-      }
-    }
-  }, [isPlaying, hasInteracted, song])
-
   if (!song) {
     return null
   }
@@ -63,8 +14,8 @@ export function SpinningCD({
   return (
     <div className="relative h-8 w-8">
       <div
-        ref={cdRef}
-        className="h-full w-full overflow-hidden rounded-full border border-foreground/20 transition-transform duration-100"
+        className="h-full w-full animate-[spin_12s_linear_infinite] overflow-hidden rounded-full border border-foreground/20 motion-reduce:animate-none"
+        style={{ animationPlayState: isPlaying ? 'running' : 'paused' }}
       >
         <img
           src={song.albumCover}

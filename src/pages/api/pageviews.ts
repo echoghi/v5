@@ -1,8 +1,6 @@
 export const prerender = false
 import type { APIRoute } from 'astro'
-import dotenv from 'dotenv'
-
-dotenv.config()
+import { pageviewAnalyticsConfig } from '@/lib/server-config'
 
 export const GET: APIRoute = async ({ url }) => {
   const path = url.searchParams.get('path')
@@ -14,25 +12,20 @@ export const GET: APIRoute = async ({ url }) => {
     })
   }
 
-  const { DOMAIN, ANALYTICS_URL, PLAUSIBLE_KEY } = process.env
-
-  if (!ANALYTICS_URL || !PLAUSIBLE_KEY || !DOMAIN) {
+  if (!pageviewAnalyticsConfig) {
     return new Response(
-      JSON.stringify({
-        error: 'Missing ANALYTICS_URL or PLAUSIBLE_KEY or DOMAIN',
-      }),
+      JSON.stringify({ error: 'Pageview analytics are not configured' }),
       {
-        status: 500,
+        status: 503,
         headers: { 'Content-Type': 'application/json' },
       },
     )
   }
 
-  const base = ANALYTICS_URL.replace(/\/$/, '')
-  const endpoint = `${base}/api/v2/query`
+  const endpoint = `${pageviewAnalyticsConfig.apiHost}/api/v2/query`
 
   const query = {
-    site_id: DOMAIN,
+    site_id: pageviewAnalyticsConfig.domain,
     metrics: ['pageviews'],
     date_range: 'all',
     filters: [['is', 'event:page', [path]]],
@@ -42,7 +35,7 @@ export const GET: APIRoute = async ({ url }) => {
   const resp = await fetch(endpoint, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${PLAUSIBLE_KEY}`,
+      Authorization: `Bearer ${pageviewAnalyticsConfig.apiKey}`,
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },

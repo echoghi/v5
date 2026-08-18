@@ -1,20 +1,23 @@
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3'
-import sharp from 'sharp'
 import { getEntry } from 'astro:content'
-import dotenv from 'dotenv'
-
-dotenv.config()
+import { getPublicMediaUrl, getR2Config } from '@/lib/server-config'
 
 import type { ImageMetadata } from 'astro'
 
-export const r2 = new S3Client({
-  region: 'auto',
-  endpoint: `https://${process.env.ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-})
+let r2Client: S3Client | null = null
+
+function getR2Client() {
+  const config = getR2Config()
+  if (!config) return null
+
+  r2Client ??= new S3Client({
+    region: 'auto',
+    endpoint: config.endpoint,
+    credentials: config.credentials,
+  })
+
+  return { client: r2Client, bucket: config.bucket }
+}
 
 type FullSizeImage = Omit<ImageMetadata, 'src' | 'width' | 'height'> & {
   src: string
@@ -52,10 +55,13 @@ export async function parseAuthors(authors: string[]) {
 
 // Count photos in an album
 export async function getPhotoCount(albumId: string): Promise<number> {
+  const r2 = getR2Client()
+  if (!r2) return 0
+
   try {
-    const resp = await r2.send(
+    const resp = await r2.client.send(
       new ListObjectsV2Command({
-        Bucket: process.env.BUCKET!,
+        Bucket: r2.bucket,
         Prefix: `${albumId}/`,
       }),
     )
@@ -66,37 +72,6 @@ export async function getPhotoCount(albumId: string): Promise<number> {
   } catch (error) {
     console.error('Error counting photos:', error)
     return 0
-  }
-}
-
-// Blur placeholder generator
-export async function generateBlurPlaceholder(
-  buffer: Buffer,
-  blurSize = 32,
-  blurSigma = 2.5,
-): Promise<string | undefined> {
-  try {
-    const { data, info } = await sharp(buffer)
-      .resize(blurSize, blurSize, { fit: 'inside' })
-      .blur(blurSigma)
-      .raw()
-      .ensureAlpha()
-      .toBuffer({ resolveWithObject: true })
-
-    const webpBuffer = await sharp(data, {
-      raw: {
-        width: info.width,
-        height: info.height,
-        channels: 4,
-      },
-    })
-      .webp({ quality: 60 })
-      .toBuffer()
-
-    return `data:image/webp;base64,${webpBuffer.toString('base64')}`
-  } catch (err) {
-    console.warn('Failed to generate blurred placeholder:', err)
-    return undefined
   }
 }
 
@@ -117,7 +92,7 @@ export async function getFullSizeImages(
 
     return {
       ...img,
-      src: `https://${process.env.R2_PUBLIC_DOMAIN}/${id}/${cleanedFileName}`,
+      src: getPublicMediaUrl(id, cleanedFileName) ?? img.src,
       width: img.width,
       height: img.height,
       hash,
@@ -129,10 +104,13 @@ export async function getFullSizeImages(
 export async function getAlbumImages(
   albumId: string,
 ): Promise<ImageMetadata[]> {
+  const r2 = getR2Client()
+  if (!r2) return []
+
   try {
-    const resp = await r2.send(
+    const resp = await r2.client.send(
       new ListObjectsV2Command({
-        Bucket: process.env.BUCKET!,
+        Bucket: r2.bucket,
         Prefix: `${albumId}/`,
       }),
     )
@@ -144,11 +122,9 @@ export async function getAlbumImages(
       (obj) => obj.Key && obj.Key.includes('-preview'),
     )
 
-    const images: ImageMetadata[] = previews.map((obj) => {
-      const key = obj.Key!
-      return {
-        src: `https://${process.env.R2_PUBLIC_DOMAIN}/${key}`,
-      } as ImageMetadata
+    const images: ImageMetadata[] = previews.flatMap((obj) => {
+      const src = getPublicMediaUrl(obj.Key!)
+      return src ? [{ src } as ImageMetadata] : []
     })
 
     // 4. Shuffle order

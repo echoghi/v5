@@ -2,8 +2,8 @@
 import Breadcrumbs from '@/components/Breadcrumbs.astro'
 import Container from '@/components/Container.astro'
 import ProjectCard from '@/components/ProjectCard.astro'
-import { SITE } from '@/consts'
 import Layout from '@/layouts/Layout.astro'
+import { SITE } from '@/site.config'
 import { getCollection } from 'astro:content'
 
 const projects = await getCollection('projects')

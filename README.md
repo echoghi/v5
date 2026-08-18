@@ -1,8 +1,8 @@
-![Showcase Card](/public/static/twitter-card.png)
+![emile.sh](public/static/twitter-card.png)
 
-## emile.sh
+# emile.sh
 
-My personal corner of the web.
+The source for [emile.sh](https://emile.sh), a personal site built around photo galleries, writing, and small web experiments.
 
 ### Features
 
@@ -10,7 +10,7 @@ My personal corner of the web.
   Optimized, globally distributed image galleries with fast load times and efficient storage.
 
 - **Gallery music player**
-  Each photo gallery can have its own soundtrack, creating a more immersive and personalized experience. Includes an audio waveform visualizer and album cover art in the form of a spinning CD.
+  Photo galleries can have their own playlists. The player includes a live five-band Web Audio spectrum and a slowly spinning album cover.
 
 - **Blog**
   A writing space for long-form posts, notes, and ideas.
@@ -25,15 +25,41 @@ My personal corner of the web.
 - **TypeScript**
 - **Tailwind CSS**
 - **MDX / Markdown**
-- **Cloudflare R2** – Object storage for photos and audio
+- **Web Audio API** – Live bass-to-treble spectrum analysis
+- **Cloudflare R2** – Object storage for gallery images and album artwork
 - **AWS SDK (S3-compatible)** – Uploading and managing R2 assets
 - **Plausible Analytics** – Lightweight, privacy-focused analytics
 
 ---
 
+## Local Development
+
+Install the dependencies and copy the example environment file:
+
+```bash
+npm install
+cp .env.example .env
+```
+
+Set `DOMAIN` to your deployment hostname, then start Astro:
+
+```bash
+npm run dev
+```
+
+The development server runs at `http://localhost:1234`. To type-check and create a production build, run:
+
+```bash
+npm run build
+```
+
+R2 and Plausible are optional during local development. Without R2, galleries are empty and music uses the local logo in place of album artwork. Without Plausible, tracking and pageview counts are not rendered.
+
+---
+
 ## Prerequisites
 
-Before adding photo galleries or running the image processing scripts, you must configure Cloudflare R2 and your public media endpoint.
+Cloudflare R2 is required to serve gallery images and album artwork, and to run the image-processing workflow. It is not required to run the rest of the site. MP3 files are stored in `public/audio` and are served as static site assets.
 
 ### Cloudflare Setup
 
@@ -43,18 +69,36 @@ Before adding photo galleries or running the image processing scripts, you must 
 - Generate **R2 access keys** with read/write permissions for that bucket
 - (Optional but recommended) Configure a **custom domain** for R2 (CDN-style), e.g. `https://cdn.yoursite.com`
 
-### Required Environment Variables
+### Environment Variables
 
-The image processing script loads credentials via `dotenv` and requires the following environment variables:
+Astro validates the site configuration through its typed environment schema. The standalone image-processing script reads the same R2 values from `.env` using `dotenv`.
 
 ```env
+DOMAIN=yoursite.com
+R2_PUBLIC_DOMAIN=cdn.yoursite.com
 ACCOUNT_ID=your_cloudflare_account_id
 BUCKET=your_r2_bucket_name
 AWS_ACCESS_KEY_ID=your_r2_access_key_id
 AWS_SECRET_ACCESS_KEY=your_r2_secret_access_key
+
+# Optional analytics
+ANALYTICS_URL=https://plausible.io
+PLAUSIBLE_KEY=your_plausible_stats_api_key
 ```
 
 #### Variable descriptions
+
+- **`DOMAIN`**
+  The production hostname, without a protocol. Astro uses it for canonical URLs, the sitemap, RSS, and Plausible's site ID.
+
+- **`R2_PUBLIC_DOMAIN`**
+  The public R2 or CDN hostname used to construct gallery image URLs, without a protocol.
+
+- **`ANALYTICS_URL`**
+  Optional. The Plausible server URL. Use `https://plausible.io` for the hosted service or the URL of your self-hosted instance. Leave it blank to disable analytics entirely.
+
+- **`PLAUSIBLE_KEY`**
+  Optional. A Plausible Stats API key used by `/api/pageviews`. When it is absent, event tracking can still work, but public pageview counts are not rendered.
 
 - **`ACCOUNT_ID`**
   Your Cloudflare account ID.
@@ -75,58 +119,56 @@ AWS_SECRET_ACCESS_KEY=your_r2_secret_access_key
   The secret key paired with the access key above.
   Required for authenticated read/write access.
 
-> **Note:** The R2 API endpoint is derived automatically from `ACCOUNT_ID` inside the image processing script and does not need to be set manually.
+> **Note:** The R2 API endpoint is derived automatically from `ACCOUNT_ID` and does not need to be set manually. The application skips R2 calls when any required R2 value is missing; the image-processing script instead exits immediately with a list of missing variables.
 
-### CDN / Media Endpoint Configuration
+### CDN / Media Configuration
 
-Gallery images and audio are served from a **public endpoint** backed by Cloudflare R2.
-This endpoint can be **custom-named** using a Cloudflare-managed domain.
+Gallery images and album artwork are served from a public endpoint backed by Cloudflare R2. MP3 files are served separately from `public/audio`.
 
-Example:
-
-```
-https://cdn.emile.sh
-```
-
-#### Required code changes
-
-1. **Update the media endpoint used at runtime**
-
-Open:
+The public R2 endpoint can use a Cloudflare-managed custom domain, for example:
 
 ```
-src/lib/utils.ts
+https://cdn.yoursite.com
 ```
 
-Update the endpoint reference inside the function:
+#### Required configuration
 
+1. **Configure gallery images**
+
+Set `R2_PUBLIC_DOMAIN` in `.env` to the public hostname without `https://`:
+
+```env
+R2_PUBLIC_DOMAIN=cdn.yoursite.com
 ```
-getSongDataById
+
+2. **Configure album artwork**
+
+Album artwork is loaded automatically from:
+
+```text
+https://<R2_PUBLIC_DOMAIN>/albums/<song-id>.webp
 ```
 
-This function constructs public URLs for:
+The same `R2_PUBLIC_DOMAIN` setting is used for gallery images and album artwork. No source-code change is required.
 
-- Audio files
-- Waveform JSON data
-- Album artwork
-
-Replace the existing base URL with your own CDN / R2 public endpoint.
-
-2. **Configure site-specific constants**
+3. **Configure site-specific content**
 
 Update your site metadata in:
 
 ```
-src/consts.ts
+src/site.config.ts
 ```
 
 This includes project-specific values such as:
 
 - Site name
-- Base URLs
-- Any other global constants used across the site
+- Description
+- Navigation links
+- Social links
 
-> **Important:** If the CDN endpoint is not configured correctly, music playback and gallery media will fail to load even if uploads succeed.
+Photo-gallery playlists remain in `src/consts.ts`. Deployment-specific values and secrets belong in `.env`; they do not need to be changed in source code.
+
+> **Important:** An incorrect `R2_PUBLIC_DOMAIN` will prevent gallery images and album artwork from loading. MP3 playback uses local static assets.
 
 ---
 
@@ -232,11 +274,27 @@ If **no music is provided**, the player will **not render**.
 
 **Notes**
 
-- The music player only appears on **desktop breakpoints and larger**
-- Playback can be toggled using the spacebar
+- The player is rendered only for gallery slugs with a non-empty playlist
+- The current layout displays it at Tailwind's **`2xl` breakpoint (1536px and wider)**
+- Browsers require the first playback to come from a user interaction
+- Once activated, playback can also be toggled with the spacebar when focus is not inside a control or editable field
 - The player starts minimized, expands when you press play, and can be minimized again without stopping playback
 - Music is associated with a gallery via its **slug**
-- Waveform height tweaks are optional; defaults are usually fine
+- Audio uses `preload="metadata"`; full tracks are not intentionally preloaded on page load
+
+### How the spectrum works
+
+The five bars are driven directly by an `AnalyserNode` connected to the playing `<audio>` element. A 2048-point FFT divides the signal into these bands:
+
+| Bar | Frequency range | Approximate content     |
+| --- | --------------- | ----------------------- |
+| 1   | 20–120 Hz       | Sub-bass and bass       |
+| 2   | 120–300 Hz      | Upper bass and low mids |
+| 3   | 300–900 Hz      | Midrange                |
+| 4   | 900–3,000 Hz    | Upper mids and presence |
+| 5   | 3,000–12,000 Hz | Treble                  |
+
+The bars update from the live frequency data while audio is playing. No waveform JSON, preprocessing step, or per-song height configuration is required.
 
 ### 1) Register songs for a gallery
 
@@ -250,7 +308,20 @@ Add song metadata to `src/consts.ts`.
 - `title` — Track title
 - `artist` — Artist name
 - `id` — **Slug used for filenames** (must match audio + artwork)
-- `maxHeight` _(optional)_ — Controls the relative height of the animated waveform bars
+
+Example:
+
+```ts
+export const songs: Record<string, Song[]> = {
+  'san-francisco': [
+    {
+      title: 'Comedown',
+      artist: 'Parcels',
+      id: 'parcels-comedown',
+    },
+  ],
+}
+```
 
 ### 2) Add MP3 files
 
@@ -262,21 +333,13 @@ public/audio/<gallery-slug>/
 
 Filenames **must match** the song `id`.
 
-### 3) Generate waveform data
+For the example above:
 
-Run:
-
-```bash
-npm run process-audio
+```text
+public/audio/san-francisco/parcels-comedown.mp3
 ```
 
-Or for a single gallery:
-
-```bash
-npm run process-audio -- --dir san-francisco
-```
-
-### 4) Add album artwork
+### 3) Add album artwork
 
 For each song, add a square album image:
 
@@ -293,6 +356,8 @@ albums/
   parcels-comedown.webp
   toro-y-moi-rose-quartz.webp
 ```
+
+Audio and artwork filenames are derived from the song `id`; missing files will result in a playback error or broken cover respectively.
 
 > **Note:** The `albums/` directory is intentionally preserved by the image upload script and will not be deleted during gallery updates.
 

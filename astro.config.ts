@@ -7,7 +7,7 @@ import {
   transformerMetaHighlight,
   transformerNotationDiff,
 } from '@shikijs/transformers'
-import { defineConfig } from 'astro/config'
+import { defineConfig, envField } from 'astro/config'
 import rehypeKatex from 'rehype-katex'
 import rehypeExternalLinks from 'rehype-external-links'
 import rehypePrettyCode from 'rehype-pretty-code'
@@ -15,18 +15,70 @@ import remarkEmoji from 'remark-emoji'
 import remarkMath from 'remark-math'
 import remarkToc from 'remark-toc'
 import sectionize from '@hbsnow/rehype-sectionize'
+import { loadEnv } from 'vite'
 
-import vercel from '@astrojs/vercel';
+import vercel from '@astrojs/vercel'
+
+const { DOMAIN } = loadEnv(
+  process.env.NODE_ENV ?? 'development',
+  process.cwd(),
+  '',
+)
+const site = DOMAIN
+  ? new URL(DOMAIN.includes('://') ? DOMAIN : `https://${DOMAIN}`).origin
+  : undefined
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://emile.sh',
+  site,
 
-  integrations: [
-    sitemap(),
-    mdx(),
-    react(),
-  ],
+  env: {
+    schema: {
+      DOMAIN: envField.string({
+        context: 'client',
+        access: 'public',
+        optional: true,
+      }),
+      ANALYTICS_URL: envField.string({
+        context: 'client',
+        access: 'public',
+        optional: true,
+        url: true,
+      }),
+      R2_PUBLIC_DOMAIN: envField.string({
+        context: 'server',
+        access: 'public',
+        optional: true,
+      }),
+      ACCOUNT_ID: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      BUCKET: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      AWS_ACCESS_KEY_ID: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      AWS_SECRET_ACCESS_KEY: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      PLAUSIBLE_KEY: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+    },
+  },
+
+  integrations: [sitemap(), mdx(), react()],
 
   trailingSlash: 'never',
 
@@ -42,7 +94,7 @@ export default defineConfig({
       ],
       rehypeHeadingIds,
       rehypeKatex,
-      // @ts-expect-error
+      // @ts-expect-error Different unified versions expose incompatible plugin types.
       sectionize,
       [
         rehypePrettyCode,

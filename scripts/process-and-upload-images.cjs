@@ -14,14 +14,31 @@ require('dotenv').config()
 // ==== CONFIGURATION ====
 const ACCOUNT_ID = process.env.ACCOUNT_ID
 const BUCKET = process.env.BUCKET
+const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID
+const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY
+const missingConfig = [
+  ['ACCOUNT_ID', ACCOUNT_ID],
+  ['BUCKET', BUCKET],
+  ['AWS_ACCESS_KEY_ID', AWS_ACCESS_KEY_ID],
+  ['AWS_SECRET_ACCESS_KEY', AWS_SECRET_ACCESS_KEY],
+]
+  .filter(([, value]) => !value)
+  .map(([name]) => name)
+
+if (missingConfig.length > 0) {
+  throw new Error(
+    `Missing required R2 configuration: ${missingConfig.join(', ')}`,
+  )
+}
+
 const ENDPOINT = `https://${ACCOUNT_ID}.r2.cloudflarestorage.com`
 
 const r2 = new S3Client({
   region: 'auto',
   endpoint: ENDPOINT,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    accessKeyId: AWS_ACCESS_KEY_ID,
+    secretAccessKey: AWS_SECRET_ACCESS_KEY,
   },
 })
 
@@ -180,11 +197,7 @@ async function uploadToR2(key, buffer, contentType) {
         .webp({ quality: 100, effort: 6 })
         .toBuffer()
 
-      await uploadToR2(
-        `${baseDir}/${imageHash}.webp`,
-        fullBuffer,
-        'image/webp',
-      )
+      await uploadToR2(`${baseDir}/${imageHash}.webp`, fullBuffer, 'image/webp')
 
       // PREVIEW → jpeg
       const previewBuffer = await sharp(inputPath, { failOnError: false })

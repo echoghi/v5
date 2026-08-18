@@ -1,6 +1,6 @@
 ---
 import Container from '@/components/Container.astro'
-import { SOCIAL_LINKS } from '@/consts'
+import { SITE, SOCIAL_LINKS } from '@/site.config'
 import SocialIcons from './SocialIcons.astro'
 ---
 
@@ -11,7 +11,8 @@ import SocialIcons from './SocialIcons.astro'
     >
       <div class="flex items-center">
         <p class="text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} Emile Choghi. All rights reserved.
+          &copy; {new Date().getFullYear()}
+          {SITE.TITLE}. All rights reserved.
         </p>
       </div>
       <SocialIcons links={SOCIAL_LINKS} />
