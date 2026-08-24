@@ -259,17 +259,13 @@ export async function getPhotostreamImages(
     }),
   )
 
-  // Interleave albums so the stream feels like one body of work rather than
-  // a stack of hidden place-based sections. Collection order still provides a
-  // subtle newest-first bias.
-  const stream: PhotostreamImage[] = []
-  const longestGroup = Math.max(0, ...groups.map((group) => group.length))
+  // Shuffle once while Astro builds the page. The resulting order stays
+  // stable for that deployment and changes on the next build.
+  const stream = groups.flat()
 
-  for (let index = 0; index < longestGroup; index += 1) {
-    for (const group of groups) {
-      const image = group[index]
-      if (image) stream.push(image)
-    }
+  for (let index = stream.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1))
+    ;[stream[index], stream[randomIndex]] = [stream[randomIndex], stream[index]]
   }
 
   return stream
