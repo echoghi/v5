@@ -1,0 +1,1949 @@
+---
+import Icon from '@/components/Icon.astro'
+import type { PhotostreamImage } from '@/lib/server-utils'
+
+type Props = {
+  images: PhotostreamImage[]
+  collectionCount: number
+  initialPhotoSlug?: string
+}
+
+const { images, collectionCount, initialPhotoSlug } = Astro.props
+const eagerImageCount = 12
+---
+
+<div
+  class="photostream"
+  data-photostream
+  data-initial-photo-slug={initialPhotoSlug ?? ''}
+>
+  <svg class="glass-filter-defs" aria-hidden="true">
+    <defs id="photostream-glass-filter-defs"></defs>
+  </svg>
+
+  <nav class="photostream-controls" aria-label="Photos controls">
+    <a
+      class="liquid-glass glass-button glass-icon"
+      id="photostream-back-button"
+      href="/"
+      aria-label="Back home"
+    >
+      <Icon name="lucide:arrow-left" class="size-5" />
+    </a>
+
+    <div class="photo-context" id="photo-context">
+      <div
+        class="liquid-glass photo-context-surface"
+        id="photo-context-surface"
+      >
+        <button
+          class="glass-button glass-label photo-context-button"
+          id="photostream-info-button"
+          type="button"
+          aria-label="Show photos information"
+          aria-expanded="false"
+          aria-controls="photostream-details"
+        >
+          <span
+            class="photo-context-note-indicator"
+            id="photo-context-note-indicator"
+            aria-hidden="true"
+            hidden
+          >
+            <Icon name="lucide:align-left" class="size-3" />
+          </span>
+          <span class="photo-context-label" id="photo-context-label"
+            >Photos</span
+          >
+          <span
+            class="photo-context-chevron"
+            id="photo-context-chevron"
+            aria-hidden="true"
+            hidden
+          >
+            <Icon name="lucide:chevron-down" class="size-3.5" />
+          </span>
+        </button>
+
+        <div id="photo-details" class="photo-details" aria-hidden="true" hidden>
+          <p id="photo-details-note" class="photo-details-note" hidden></p>
+          <dl>
+            <div>
+              <dt>
+                <Icon name="lucide:camera" class="size-3" />
+                <span class="sr-only">Camera</span>
+              </dt>
+              <dd id="photo-details-camera"></dd>
+            </div>
+            <div id="photo-details-lens-row">
+              <dt>
+                <Icon name="lucide:aperture" class="size-3" />
+                <span class="sr-only">Lens</span>
+              </dt>
+              <dd id="photo-details-lens"></dd>
+            </div>
+            <div>
+              <dt>
+                <Icon name="lucide:map-pin" class="size-3" />
+                <span class="sr-only">Location</span>
+              </dt>
+              <dd id="photo-details-location"></dd>
+            </div>
+          </dl>
+        </div>
+
+        <div
+          id="photostream-details"
+          class="photo-details photostream-details"
+          aria-hidden="true"
+          hidden
+        >
+          <div class="photostream-intro">
+            <h2>A place for memories across the years.</h2>
+            <p>
+              This collection brings together {images.length} photographs across {
+                collectionCount
+              } chapters. It includes travel days, ordinary afternoons, and moments
+              that never needed a full album.
+            </p>
+            <p>
+              Open a photo to see when and where it was taken, plus the camera
+              used. I’ll keep adding details as I go.
+            </p>
+            <p class="photostream-signoff">Emile</p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  {
+    images.length > 0 ? (
+      <section
+        class="photostream-grid"
+        aria-label={`${images.length} photos in one continuous stream`}
+      >
+        {images.map((image, index) => (
+          <figure
+            class={`photostream-item photostream-item--${image.shape}`}
+            data-photo-index={index}
+            data-shape={image.shape}
+            style={`--photo-ratio:${image.width}/${image.height};--row-span:${image.rowSpan}`}
+          >
+            <button
+              class="photostream-tile"
+              type="button"
+              aria-label={`Open photo ${index + 1} of ${images.length}, from ${image.collectionName}`}
+              aria-haspopup="dialog"
+              data-photo-button
+            >
+              <img
+                src={image.previewSrc}
+                data-photo-slug={image.slug}
+                data-full-src={image.fullSrc}
+                data-collection={image.collectionName}
+                data-public-note={image.publicNote ?? ''}
+                data-captured-at={image.capturedAt}
+                data-camera={image.camera}
+                data-lens={image.lens}
+                data-location={image.location}
+                data-loaded="false"
+                alt={`Photo from ${image.collectionName}${image.period ? `, ${image.period}` : ''}`}
+                loading={index < eagerImageCount ? 'eager' : 'lazy'}
+                decoding="async"
+                fetchpriority={index < 4 ? 'high' : 'auto'}
+                draggable="false"
+                width={image.width}
+                height={image.height}
+                sizes="(max-width: 639px) 100vw, (max-width: 1199px) 50vw, 25vw"
+              />
+            </button>
+          </figure>
+        ))}
+      </section>
+    ) : (
+      <section class="photostream-empty">
+        <p class="eyebrow">Photos</p>
+        <h1>The film is still loading.</h1>
+        <p>
+          Photo storage is not connected in this environment. Once R2 is
+          available, the full stream will appear here.
+        </p>
+      </section>
+    )
+  }
+
+  <div
+    id="photostream-lightbox"
+    class="lightbox"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Photo viewer"
+    aria-hidden="true"
+    hidden
+  >
+    <img id="lightbox-image" class="lightbox-image" alt="" draggable="false" />
+
+    <button
+      class="liquid-glass glass-button glass-icon lightbox-nav lightbox-prev"
+      id="lightbox-prev"
+      type="button"
+      aria-label="Previous photo"
+    >
+      <Icon name="lucide:chevron-left" class="size-6" />
+    </button>
+
+    <button
+      class="liquid-glass glass-button glass-icon lightbox-nav lightbox-next"
+      id="lightbox-next"
+      type="button"
+      aria-label="Next photo"
+    >
+      <Icon name="lucide:chevron-right" class="size-6" />
+    </button>
+  </div>
+</div>
+
+<script>
+  type PhotostreamWindow = Window & {
+    __photostreamController?: AbortController
+    __photostreamGlassCounter?: number
+    __photostreamListenerInstalled?: boolean
+  }
+
+  type PhotostreamRouteState =
+    | { view: 'grid' }
+    | { view: 'photo'; slug: string; canReturnToGrid: boolean }
+
+  type PhotostreamHistoryState = Record<string, unknown> & {
+    __photostream?: PhotostreamRouteState
+  }
+
+  const runtimeWindow = window as PhotostreamWindow
+
+  function setupPhotostream() {
+    runtimeWindow.__photostreamController?.abort()
+    const controller = new AbortController()
+    runtimeWindow.__photostreamController = controller
+    const { signal } = controller
+
+    const root = document.querySelector<HTMLElement>('[data-photostream]')
+    if (!root) return
+
+    const photoButtons = Array.from(
+      root.querySelectorAll<HTMLButtonElement>('[data-photo-button]'),
+    )
+    const tileImages = photoButtons.map(
+      (button) => button.querySelector('img') as HTMLImageElement,
+    )
+
+    const infoButton = root.querySelector<HTMLButtonElement>(
+      '#photostream-info-button',
+    )!
+    const controls = root.querySelector<HTMLElement>('.photostream-controls')!
+    const backButton = root.querySelector<HTMLAnchorElement>(
+      '#photostream-back-button',
+    )!
+    const photoContext = root.querySelector<HTMLElement>('#photo-context')!
+    const photoContextSurface = root.querySelector<HTMLElement>(
+      '#photo-context-surface',
+    )!
+    const liquidGlassDefs = root.querySelector<SVGDefsElement>(
+      '#photostream-glass-filter-defs',
+    )!
+    const contextNoteIndicator = root.querySelector<HTMLElement>(
+      '#photo-context-note-indicator',
+    )!
+    const contextLabel = root.querySelector<HTMLElement>(
+      '#photo-context-label',
+    )!
+    const contextChevron = root.querySelector<HTMLElement>(
+      '#photo-context-chevron',
+    )!
+    const photoDetails = root.querySelector<HTMLElement>('#photo-details')!
+    const detailsNote = root.querySelector<HTMLElement>('#photo-details-note')!
+    const detailsCamera = root.querySelector<HTMLElement>(
+      '#photo-details-camera',
+    )!
+    const detailsLensRow = root.querySelector<HTMLElement>(
+      '#photo-details-lens-row',
+    )!
+    const detailsLens = root.querySelector<HTMLElement>('#photo-details-lens')!
+    const detailsLocation = root.querySelector<HTMLElement>(
+      '#photo-details-location',
+    )!
+    const photostreamDetails = root.querySelector<HTMLElement>(
+      '#photostream-details',
+    )!
+
+    const lightbox = root.querySelector<HTMLElement>('#photostream-lightbox')!
+    const hero = root.querySelector<HTMLImageElement>('#lightbox-image')!
+    const prevButton = root.querySelector<HTMLButtonElement>('#lightbox-prev')!
+    const nextButton = root.querySelector<HTMLButtonElement>('#lightbox-next')!
+    if (
+      !infoButton ||
+      !controls ||
+      !backButton ||
+      !photoContext ||
+      !photoContextSurface ||
+      !liquidGlassDefs ||
+      !contextNoteIndicator ||
+      !contextLabel ||
+      !contextChevron ||
+      !photoDetails ||
+      !photostreamDetails ||
+      !detailsNote ||
+      !detailsCamera ||
+      !detailsLensRow ||
+      !detailsLens ||
+      !detailsLocation ||
+      !lightbox ||
+      !hero ||
+      !prevButton ||
+      !nextButton
+    ) {
+      return
+    }
+
+    const reduceMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches
+    const transitionDuration = reduceMotion ? 1 : 480
+    const transitionEasing = 'cubic-bezier(0.22, 1, 0.36, 1)'
+    let currentIndex = -1
+    let opener: HTMLButtonElement | null = null
+    let isAnimating = false
+    let fullImageToken = 0
+    let swipeStartX: number | null = null
+    let photoDetailsOpen = false
+    let contextSurfaceAnimation: Animation | null = null
+    let contextDetailsAnimation: Animation | null = null
+    let collapsedContextFrame: { width: number; height: number } | null = null
+    let activeContextDetails: HTMLElement | null = null
+
+    type LiquidGlassFrame = {
+      width: number
+      height: number
+      radius?: number
+    }
+
+    type LiquidGlassFilterState = {
+      element: HTMLElement
+      filter: SVGFilterElement
+      image: SVGElement
+      displacementMaps: SVGElement[]
+      lastKey: string
+    }
+
+    const svgNamespace = 'http://www.w3.org/2000/svg'
+    const desktopGlassQuery = window.matchMedia(
+      '(min-width: 1024px) and (hover: hover)',
+    )
+    const supportsSvgBackdropFilter =
+      typeof CSS !== 'undefined' &&
+      (CSS.supports(
+        'backdrop-filter',
+        'url("#photostream-glass-test") blur(2px)',
+      ) ||
+        CSS.supports(
+          '-webkit-backdrop-filter',
+          'url("#photostream-glass-test") blur(2px)',
+        ))
+    const liquidGlassStates = new Map<HTMLElement, LiquidGlassFilterState>()
+    const dirtyLiquidGlassElements = new Set<HTMLElement>()
+    let liquidGlassUpdateTimer: number | null = null
+
+    runtimeWindow.__photostreamGlassCounter =
+      (runtimeWindow.__photostreamGlassCounter ?? 0) + 1
+    const liquidGlassIdPrefix = `photostream-glass-${runtimeWindow.__photostreamGlassCounter}`
+
+    function createSvgElement(
+      tagName: string,
+      attributes: Record<string, string>,
+    ) {
+      const element = document.createElementNS(svgNamespace, tagName)
+      Object.entries(attributes).forEach(([name, value]) => {
+        element.setAttribute(name, value)
+      })
+      return element
+    }
+
+    function createLiquidGlassDistanceMap(
+      width: number,
+      height: number,
+      radius: number,
+    ) {
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const context = canvas.getContext('2d')
+      if (!context) return ''
+
+      const imageData = context.createImageData(width, height)
+      const pixels = imageData.data
+      const halfWidth = (width - 1) / 2
+      const halfHeight = (height - 1) / 2
+      const safeRadius = Math.max(0, Math.min(radius, halfWidth, halfHeight))
+      const innerHalfWidth = halfWidth - safeRadius
+      const innerHalfHeight = halfHeight - safeRadius
+      const maximumDepth = Math.max(1, Math.min(halfWidth, halfHeight))
+
+      for (let y = 0; y < height; y += 1) {
+        const positionY = y - halfHeight
+        const signY = positionY < 0 ? -1 : 1
+
+        for (let x = 0; x < width; x += 1) {
+          const positionX = x - halfWidth
+          const signX = positionX < 0 ? -1 : 1
+          const distanceX = Math.abs(positionX) - innerHalfWidth
+          const distanceY = Math.abs(positionY) - innerHalfHeight
+          const outsideX = Math.max(distanceX, 0)
+          const outsideY = Math.max(distanceY, 0)
+          const outsideLength = Math.hypot(outsideX, outsideY)
+          const signedDistance =
+            outsideLength +
+            Math.min(Math.max(distanceX, distanceY), 0) -
+            safeRadius
+          const insideDepth = -signedDistance
+
+          let normalX = 0
+          let normalY = 0
+
+          if (outsideX > 0 && outsideY > 0 && outsideLength > 0) {
+            normalX = (outsideX / outsideLength) * signX
+            normalY = (outsideY / outsideLength) * signY
+          } else if (distanceX > distanceY) {
+            normalX = signX
+          } else {
+            normalY = signY
+          }
+
+          let red = 128
+          let green = 128
+
+          if (insideDepth > 0) {
+            const normalizedDepth = Math.min(insideDepth / maximumDepth, 1)
+            const strength = Math.pow(1 - normalizedDepth, 2.2)
+            red = Math.round(128 + normalX * 128 * strength)
+            green = Math.round(128 + normalY * 128 * strength)
+          }
+
+          const pixelIndex = (y * width + x) * 4
+          pixels[pixelIndex] = Math.max(0, Math.min(255, red))
+          pixels[pixelIndex + 1] = Math.max(0, Math.min(255, green))
+          pixels[pixelIndex + 2] = 128
+          pixels[pixelIndex + 3] = 255
+        }
+      }
+
+      context.putImageData(imageData, 0, 0)
+      return canvas.toDataURL('image/png')
+    }
+
+    function appendColorChannel(
+      filter: SVGFilterElement,
+      input: string,
+      result: string,
+      values: string,
+    ) {
+      filter.append(
+        createSvgElement('feColorMatrix', {
+          'color-interpolation-filters': 'sRGB',
+          in: input,
+          result,
+          type: 'matrix',
+          values,
+        }),
+      )
+    }
+
+    function createLiquidGlassFilter(element: HTMLElement, index: number) {
+      const filterId = `${liquidGlassIdPrefix}-${index + 1}`
+      const filter = createSvgElement('filter', {
+        id: filterId,
+        x: '0%',
+        y: '0%',
+        width: '100%',
+        height: '100%',
+        'color-interpolation-filters': 'sRGB',
+      }) as SVGFilterElement
+      const image = createSvgElement('feImage', {
+        x: '0',
+        y: '0',
+        width: '1',
+        height: '1',
+        preserveAspectRatio: 'none',
+        result: 'map',
+        'color-interpolation-filters': 'sRGB',
+      })
+      filter.append(image)
+
+      const displacementMaps = ['R', 'G', 'B'].map((channel) => {
+        const result = `disp${channel}`
+        const displacement = createSvgElement('feDisplacementMap', {
+          'color-interpolation-filters': 'sRGB',
+          in: 'SourceGraphic',
+          in2: 'map',
+          result,
+          scale: '0',
+          xChannelSelector: 'R',
+          yChannelSelector: 'G',
+        })
+        filter.append(displacement)
+        return displacement
+      })
+
+      appendColorChannel(
+        filter,
+        'dispR',
+        'chR',
+        '1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0',
+      )
+      appendColorChannel(
+        filter,
+        'dispG',
+        'chG',
+        '0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0',
+      )
+      appendColorChannel(
+        filter,
+        'dispB',
+        'chB',
+        '0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0',
+      )
+      filter.append(
+        createSvgElement('feComposite', {
+          'color-interpolation-filters': 'sRGB',
+          in: 'chR',
+          in2: 'chG',
+          k1: '0',
+          k2: '1',
+          k3: '1',
+          k4: '0',
+          operator: 'arithmetic',
+          result: 'chRG',
+        }),
+        createSvgElement('feComposite', {
+          'color-interpolation-filters': 'sRGB',
+          in: 'chRG',
+          in2: 'chB',
+          k1: '0',
+          k2: '1',
+          k3: '1',
+          k4: '0',
+          operator: 'arithmetic',
+        }),
+      )
+      liquidGlassDefs.append(filter)
+
+      const state: LiquidGlassFilterState = {
+        element,
+        filter,
+        image,
+        displacementMaps,
+        lastKey: '',
+      }
+      liquidGlassStates.set(element, state)
+      return state
+    }
+
+    function updateLiquidGlassFilter(
+      element: HTMLElement,
+      forcedFrame?: LiquidGlassFrame,
+    ) {
+      const state = liquidGlassStates.get(element)
+      if (!state) return
+
+      if (!desktopGlassQuery.matches || !supportsSvgBackdropFilter) {
+        element.style.removeProperty('backdrop-filter')
+        element.style.removeProperty('-webkit-backdrop-filter')
+        state.lastKey = ''
+        return
+      }
+
+      const rect = element.getBoundingClientRect()
+      const width = Math.max(2, Math.round(forcedFrame?.width ?? rect.width))
+      const height = Math.max(2, Math.round(forcedFrame?.height ?? rect.height))
+      if (rect.width <= 0 && forcedFrame?.width === undefined) return
+      if (rect.height <= 0 && forcedFrame?.height === undefined) return
+
+      const isExpanded =
+        element === photoContextSurface &&
+        photoContextSurface.classList.contains('is-expanded')
+      const blur = isExpanded ? 5 : 2.16667
+      const scales = isExpanded ? [56, 66, 76] : [36, 42, 48]
+      const computedRadius = Number.parseFloat(
+        getComputedStyle(element).borderTopLeftRadius,
+      )
+      const radius = Math.min(
+        (width - 1) / 2,
+        (height - 1) / 2,
+        forcedFrame?.radius ??
+          (Number.isFinite(computedRadius) ? computedRadius : height / 2),
+      )
+      const key = `${width}:${height}:${radius.toFixed(2)}:${isExpanded}`
+      if (state.lastKey === key) return
+
+      const map = createLiquidGlassDistanceMap(width, height, radius)
+      if (!map) return
+
+      state.image.setAttribute('width', String(width))
+      state.image.setAttribute('height', String(height))
+      state.image.setAttribute('href', map)
+      state.displacementMaps.forEach((displacement, index) => {
+        displacement.setAttribute('scale', String(scales[index]))
+      })
+
+      const filterValue = `url("#${state.filter.id}") blur(${blur}px) saturate(1.7)`
+      element.style.setProperty('backdrop-filter', filterValue)
+      element.style.setProperty('-webkit-backdrop-filter', filterValue)
+      state.lastKey = key
+    }
+
+    function scheduleLiquidGlassFilterUpdate(element: HTMLElement) {
+      dirtyLiquidGlassElements.add(element)
+      if (liquidGlassUpdateTimer !== null) return
+
+      liquidGlassUpdateTimer = window.setTimeout(() => {
+        liquidGlassUpdateTimer = null
+        dirtyLiquidGlassElements.forEach((dirtyElement) => {
+          if (dirtyElement === photoContextSurface && contextSurfaceAnimation) {
+            return
+          }
+          updateLiquidGlassFilter(dirtyElement)
+        })
+        dirtyLiquidGlassElements.clear()
+      }, 80)
+    }
+
+    liquidGlassDefs.replaceChildren()
+    const liquidGlassElements = Array.from(
+      root.querySelectorAll<HTMLElement>('.liquid-glass'),
+    )
+    liquidGlassElements.forEach((element, index) => {
+      createLiquidGlassFilter(element, index)
+      updateLiquidGlassFilter(element)
+    })
+
+    const liquidGlassResizeObserver =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver((entries) => {
+            entries.forEach((entry) => {
+              scheduleLiquidGlassFilterUpdate(entry.target as HTMLElement)
+            })
+          })
+    liquidGlassElements.forEach((element) => {
+      liquidGlassResizeObserver?.observe(element)
+    })
+
+    const syncLiquidGlassFilters = () => {
+      liquidGlassElements.forEach((element) => {
+        updateLiquidGlassFilter(element)
+      })
+    }
+    desktopGlassQuery.addEventListener('change', syncLiquidGlassFilters)
+    signal.addEventListener(
+      'abort',
+      () => {
+        liquidGlassResizeObserver?.disconnect()
+        desktopGlassQuery.removeEventListener('change', syncLiquidGlassFilters)
+        if (liquidGlassUpdateTimer !== null) {
+          window.clearTimeout(liquidGlassUpdateTimer)
+        }
+        liquidGlassElements.forEach((element) => {
+          element.style.removeProperty('backdrop-filter')
+          element.style.removeProperty('-webkit-backdrop-filter')
+        })
+        liquidGlassDefs.replaceChildren()
+      },
+      { once: true },
+    )
+
+    function getHistoryState(): PhotostreamHistoryState {
+      return history.state && typeof history.state === 'object'
+        ? history.state
+        : {}
+    }
+
+    function getPhotoSlugFromPath() {
+      const match = window.location.pathname.match(/^\/photo\/([^/]+)\/?$/)
+      if (!match) return ''
+
+      try {
+        return decodeURIComponent(match[1])
+      } catch {
+        return ''
+      }
+    }
+
+    function getPhotoIndex(slug: string) {
+      return tileImages.findIndex((image) => image.dataset.photoSlug === slug)
+    }
+
+    function setGridUrl() {
+      history.replaceState(
+        { ...getHistoryState(), __photostream: { view: 'grid' } },
+        '',
+        '/photos',
+      )
+    }
+
+    function setPhotoUrl(
+      index: number,
+      mode: 'push' | 'replace',
+      canReturnToGrid: boolean,
+    ) {
+      const slug = tileImages[index]?.dataset.photoSlug
+      if (!slug) return
+
+      const state: PhotostreamHistoryState = {
+        ...getHistoryState(),
+        __photostream: { view: 'photo', slug, canReturnToGrid },
+      }
+      const url = `/photo/${encodeURIComponent(slug)}`
+
+      if (mode === 'push') {
+        history.pushState(state, '', url)
+      } else {
+        history.replaceState(state, '', url)
+      }
+    }
+
+    function canCurrentPhotoReturnToGrid() {
+      const route = getHistoryState().__photostream
+      return route?.view === 'photo' && route.canReturnToGrid
+    }
+
+    function setPageScrollLocked(locked: boolean) {
+      document.documentElement.classList.toggle('photostream-locked', locked)
+      document.body.classList.toggle('photostream-locked', locked)
+    }
+
+    signal.addEventListener('abort', () => setPageScrollLocked(false), {
+      once: true,
+    })
+
+    function markImageLoaded(image: HTMLImageElement) {
+      image.dataset.loaded = image.naturalWidth > 0 ? 'true' : 'error'
+    }
+
+    tileImages.forEach((image) => {
+      if (image.complete) {
+        markImageLoaded(image)
+      } else {
+        image.addEventListener('load', () => markImageLoaded(image), {
+          once: true,
+          signal,
+        })
+        image.addEventListener(
+          'error',
+          () => {
+            image.dataset.loaded = 'error'
+          },
+          { once: true, signal },
+        )
+      }
+    })
+
+    function setPhotoDetailsOpen(open: boolean) {
+      const requestedDetails = lightbox.hidden
+        ? photostreamDetails
+        : photoDetails
+      const targetDetails = open
+        ? requestedDetails
+        : (activeContextDetails ?? requestedDetails)
+      const shouldOpen = open && (lightbox.hidden || currentIndex >= 0)
+      if (
+        shouldOpen === photoDetailsOpen &&
+        (!shouldOpen || activeContextDetails === targetDetails)
+      ) {
+        return
+      }
+
+      photoDetailsOpen = shouldOpen
+      infoButton.setAttribute('aria-expanded', String(shouldOpen))
+      contextChevron.classList.toggle('is-open', shouldOpen)
+      targetDetails.setAttribute('aria-hidden', String(!shouldOpen))
+
+      const fromFrame = photoContextSurface.getBoundingClientRect()
+      contextSurfaceAnimation?.cancel()
+      contextDetailsAnimation?.cancel()
+      contextSurfaceAnimation = null
+      contextDetailsAnimation = null
+
+      if (shouldOpen) {
+        collapsedContextFrame = {
+          width: fromFrame.width,
+          height: fromFrame.height,
+        }
+        activeContextDetails = targetDetails
+        photoDetails.hidden = targetDetails !== photoDetails
+        photostreamDetails.hidden = targetDetails !== photostreamDetails
+        targetDetails.hidden = false
+        photoContextSurface.classList.add('is-expanded')
+        photoContextSurface.classList.toggle(
+          'is-photostream-expanded',
+          targetDetails === photostreamDetails,
+        )
+
+        const toFrame = photoContextSurface.getBoundingClientRect()
+        updateLiquidGlassFilter(photoContextSurface, {
+          width: toFrame.width,
+          height: toFrame.height,
+          radius: Math.min(44, toFrame.height / 2),
+        })
+
+        if (reduceMotion) return
+
+        const surfaceAnimation = photoContextSurface.animate(
+          [
+            {
+              width: `${fromFrame.width}px`,
+              height: `${fromFrame.height}px`,
+              borderRadius: `${fromFrame.height / 2}px`,
+            },
+            {
+              width: `${toFrame.width}px`,
+              height: `${toFrame.height}px`,
+              borderRadius: '2.75rem',
+            },
+          ],
+          {
+            duration: 420,
+            easing: transitionEasing,
+            fill: 'both',
+          },
+        )
+        const detailsAnimation = targetDetails.animate(
+          [
+            { opacity: 0, transform: 'translate3d(0, -6px, 0)' },
+            { opacity: 1, transform: 'translate3d(0, 0, 0)' },
+          ],
+          {
+            delay: 90,
+            duration: 240,
+            easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+            fill: 'both',
+          },
+        )
+        contextSurfaceAnimation = surfaceAnimation
+        contextDetailsAnimation = detailsAnimation
+
+        void Promise.allSettled([
+          surfaceAnimation.finished,
+          detailsAnimation.finished,
+        ]).then(() => {
+          if (contextSurfaceAnimation !== surfaceAnimation) return
+          surfaceAnimation.cancel()
+          detailsAnimation.cancel()
+          contextSurfaceAnimation = null
+          contextDetailsAnimation = null
+          updateLiquidGlassFilter(photoContextSurface)
+        })
+
+        return
+      }
+
+      photoContextSurface.classList.remove('is-expanded')
+      photoContextSurface.classList.remove('is-photostream-expanded')
+
+      const toFrame = collapsedContextFrame ?? {
+        width: fromFrame.width,
+        height: 44,
+      }
+      updateLiquidGlassFilter(photoContextSurface, {
+        width: toFrame.width,
+        height: toFrame.height,
+        radius: toFrame.height / 2,
+      })
+
+      if (reduceMotion) {
+        targetDetails.hidden = true
+        activeContextDetails = null
+        return
+      }
+
+      const surfaceAnimation = photoContextSurface.animate(
+        [
+          {
+            width: `${fromFrame.width}px`,
+            height: `${fromFrame.height}px`,
+            borderRadius: '2.75rem',
+          },
+          {
+            width: `${toFrame.width}px`,
+            height: `${toFrame.height}px`,
+            borderRadius: `${toFrame.height / 2}px`,
+          },
+        ],
+        {
+          duration: 360,
+          easing: transitionEasing,
+          fill: 'both',
+        },
+      )
+      const detailsAnimation = targetDetails.animate(
+        [
+          { opacity: 1, transform: 'translate3d(0, 0, 0)' },
+          { opacity: 0, transform: 'translate3d(0, -5px, 0)' },
+        ],
+        {
+          duration: 140,
+          easing: 'ease-in',
+          fill: 'both',
+        },
+      )
+      contextSurfaceAnimation = surfaceAnimation
+      contextDetailsAnimation = detailsAnimation
+
+      void Promise.allSettled([
+        surfaceAnimation.finished,
+        detailsAnimation.finished,
+      ]).then(() => {
+        if (contextSurfaceAnimation !== surfaceAnimation) return
+        targetDetails.hidden = true
+        activeContextDetails = null
+        surfaceAnimation.cancel()
+        detailsAnimation.cancel()
+        contextSurfaceAnimation = null
+        contextDetailsAnimation = null
+        updateLiquidGlassFilter(photoContextSurface)
+      })
+    }
+
+    function getOrdinalSuffix(day: number) {
+      const lastTwoDigits = day % 100
+      if (lastTwoDigits >= 11 && lastTwoDigits <= 13) return 'th'
+
+      if (day % 10 === 1) return 'st'
+      if (day % 10 === 2) return 'nd'
+      if (day % 10 === 3) return 'rd'
+      return 'th'
+    }
+
+    function formatCapturedAt(value: string | undefined) {
+      const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})/)
+      if (!match) return ''
+
+      const year = Number(match[1])
+      const monthIndex = Number(match[2]) - 1
+      const day = Number(match[3])
+      const date = new Date(Date.UTC(year, monthIndex, day))
+
+      if (
+        date.getUTCFullYear() !== year ||
+        date.getUTCMonth() !== monthIndex ||
+        date.getUTCDate() !== day
+      ) {
+        return ''
+      }
+
+      const month = new Intl.DateTimeFormat('en-US', {
+        month: 'long',
+        timeZone: 'UTC',
+      }).format(date)
+      return `${month} ${day}${getOrdinalSuffix(day)}, ${year}`
+    }
+
+    function setPhotoContext(index: number | null) {
+      const isPhotoOpen = index !== null
+      controls.classList.toggle('is-photo-open', isPhotoOpen)
+      contextChevron.hidden = !isPhotoOpen
+      backButton.setAttribute(
+        'aria-label',
+        isPhotoOpen ? 'Back to photos' : 'Back home',
+      )
+
+      if (!isPhotoOpen) {
+        setPhotoDetailsOpen(false)
+        contextNoteIndicator.hidden = true
+        detailsNote.hidden = true
+        detailsNote.textContent = ''
+        contextLabel.textContent = 'Photos'
+        infoButton.setAttribute('aria-label', 'Show photos information')
+        infoButton.setAttribute('aria-controls', 'photostream-details')
+        infoButton.setAttribute('aria-expanded', 'false')
+        return
+      }
+
+      const image = tileImages[index]
+      const collection = image.dataset.collection || 'Photo'
+      const publicNote = image.dataset.publicNote?.trim() ?? ''
+      contextNoteIndicator.hidden = !publicNote
+      detailsNote.textContent = publicNote
+      detailsNote.hidden = !publicNote
+      contextLabel.textContent =
+        formatCapturedAt(image.dataset.capturedAt) || 'Date unknown'
+      detailsCamera.textContent = image.dataset.camera || ''
+      detailsLens.textContent = image.dataset.lens || ''
+      detailsLensRow.hidden = !image.dataset.lens
+      detailsLocation.textContent = image.dataset.location || collection
+      infoButton.setAttribute(
+        'aria-label',
+        `Show photo details for ${collection}`,
+      )
+      infoButton.setAttribute('aria-controls', 'photo-details')
+
+      contextLabel.animate(
+        [
+          { opacity: 0, transform: 'translate3d(0, -3px, 0)' },
+          { opacity: 1, transform: 'translate3d(0, 0, 0)' },
+        ],
+        { duration: reduceMotion ? 1 : 220, easing: 'ease-out' },
+      )
+    }
+
+    infoButton.addEventListener(
+      'click',
+      () => setPhotoDetailsOpen(!photoDetailsOpen),
+      { signal },
+    )
+    backButton.addEventListener(
+      'click',
+      (event) => {
+        if (lightbox.hidden) return
+        event.preventDefault()
+        void closePhoto()
+      },
+      { signal },
+    )
+
+    function normalizeIndex(index: number) {
+      return (index + tileImages.length) % tileImages.length
+    }
+
+    function getTargetFrame(image: HTMLImageElement) {
+      const metadataWidth = Number(image.getAttribute('width'))
+      const metadataHeight = Number(image.getAttribute('height'))
+      const metadataRatio = metadataWidth / metadataHeight
+      const naturalRatio = image.naturalWidth / image.naturalHeight
+      const fallbackRatio =
+        image.closest('[data-shape]')?.getAttribute('data-shape') === 'portrait'
+          ? 2 / 3
+          : 4 / 3
+      const ratio =
+        Number.isFinite(metadataRatio) && metadataRatio > 0
+          ? metadataRatio
+          : Number.isFinite(naturalRatio) && naturalRatio > 0
+            ? naturalRatio
+            : fallbackRatio
+
+      const isMobile = window.innerWidth < 640
+      const isDesktop = window.innerWidth >= 900
+      const maxWidth = window.innerWidth * (isMobile ? 1 : 0.94)
+      const maxHeight =
+        window.innerHeight * (isMobile ? 0.9 : isDesktop ? 1 : 0.94)
+      let width = maxWidth
+      let height = width / ratio
+
+      if (height > maxHeight) {
+        height = maxHeight
+        width = height * ratio
+      }
+
+      return {
+        left: (window.innerWidth - width) / 2,
+        top: (window.innerHeight - height) / 2,
+        width,
+        height,
+      }
+    }
+
+    function applyFrame(frame: ReturnType<typeof getTargetFrame>) {
+      hero.style.left = `${frame.left}px`
+      hero.style.top = `${frame.top}px`
+      hero.style.width = `${frame.width}px`
+      hero.style.height = `${frame.height}px`
+    }
+
+    function syncHeroFrame() {
+      if (currentIndex < 0 || lightbox.hidden) return
+      applyFrame(getTargetFrame(tileImages[currentIndex]))
+    }
+
+    async function decodeImageSource(src: string) {
+      const image = new Image()
+      image.decoding = 'async'
+      image.src = src
+
+      try {
+        await image.decode()
+        return true
+      } catch {
+        return image.complete && image.naturalWidth > 0
+      }
+    }
+
+    async function upgradeToFullImage(index: number) {
+      const image = tileImages[index]
+      const fullSrc = image.dataset.fullSrc
+      if (!fullSrc) return
+
+      const token = ++fullImageToken
+      const fullImage = new Image()
+      fullImage.src = fullSrc
+
+      try {
+        await fullImage.decode()
+      } catch {
+        return
+      }
+
+      if (
+        token === fullImageToken &&
+        currentIndex === index &&
+        !lightbox.hidden
+      ) {
+        hero.src = fullSrc
+      }
+    }
+
+    function prepareHero(index: number) {
+      const image = tileImages[index]
+      currentIndex = index
+      hero.src = image.currentSrc || image.src
+      hero.alt = image.alt
+      applyFrame(getTargetFrame(image))
+      setPhotoContext(index)
+      void upgradeToFullImage(index)
+    }
+
+    async function openPhoto(
+      index: number,
+      button: HTMLButtonElement,
+      options: {
+        syncHistory?: boolean
+        animateFromGrid?: boolean
+        canReturnToGrid?: boolean
+      } = {},
+    ) {
+      if (isAnimating || tileImages.length === 0) return
+      const {
+        syncHistory = true,
+        animateFromGrid = true,
+        canReturnToGrid = true,
+      } = options
+      isAnimating = true
+      opener = animateFromGrid ? button : null
+      const safeIndex = normalizeIndex(index)
+      const sourceImage = tileImages[safeIndex]
+
+      if (syncHistory) {
+        setPhotoUrl(safeIndex, 'push', canReturnToGrid)
+      }
+
+      setPhotoDetailsOpen(false)
+      lightbox.hidden = false
+      lightbox.setAttribute('aria-hidden', 'false')
+      setPageScrollLocked(true)
+      prepareHero(safeIndex)
+
+      const frame = getTargetFrame(sourceImage)
+      hero.style.transformOrigin = '0 0'
+
+      const backdropAnimation = lightbox.animate(
+        [{ opacity: 0 }, { opacity: 1 }],
+        {
+          duration: transitionDuration,
+          easing: transitionEasing,
+          fill: 'both',
+        },
+      )
+      const sourceRect = sourceImage.getBoundingClientRect()
+      const firstTransform = `translate3d(${sourceRect.left - frame.left}px, ${sourceRect.top - frame.top}px, 0) scale(${sourceRect.width / frame.width}, ${sourceRect.height / frame.height})`
+      const imageAnimation = hero.animate(
+        animateFromGrid
+          ? [
+              { transform: firstTransform },
+              { transform: 'translate3d(0, 0, 0) scale(1)' },
+            ]
+          : [
+              {
+                opacity: 0,
+                transform: 'translate3d(0, 8px, 0) scale(0.99)',
+              },
+              {
+                opacity: 1,
+                transform: 'translate3d(0, 0, 0) scale(1)',
+              },
+            ],
+        {
+          duration: transitionDuration,
+          easing: transitionEasing,
+          fill: 'both',
+        },
+      )
+
+      await Promise.allSettled([
+        backdropAnimation.finished,
+        imageAnimation.finished,
+      ])
+      hero.style.transform = 'none'
+      syncHeroFrame()
+      isAnimating = false
+      backButton.focus({ preventScroll: true })
+    }
+
+    async function hidePhoto(options: { animateToGrid?: boolean } = {}) {
+      if (isAnimating || lightbox.hidden || currentIndex < 0) return
+      const { animateToGrid = true } = options
+      isAnimating = true
+      fullImageToken += 1
+      const sourceImage = tileImages[currentIndex]
+      const sourceRect = sourceImage.getBoundingClientRect()
+      const currentRect = hero.getBoundingClientRect()
+      const lastTransform = `translate3d(${sourceRect.left - currentRect.left}px, ${sourceRect.top - currentRect.top}px, 0) scale(${sourceRect.width / currentRect.width}, ${sourceRect.height / currentRect.height})`
+      const canFlipToTile =
+        animateToGrid &&
+        sourceRect.width > 0 &&
+        sourceRect.height > 0 &&
+        sourceRect.bottom > 0 &&
+        sourceRect.top < window.innerHeight &&
+        sourceRect.right > 0 &&
+        sourceRect.left < window.innerWidth
+      setPhotoDetailsOpen(false)
+
+      const backdropAnimation = lightbox.animate(
+        [{ opacity: 1 }, { opacity: 0 }],
+        {
+          duration: reduceMotion ? 1 : 380,
+          easing: transitionEasing,
+          fill: 'both',
+        },
+      )
+      const imageAnimation = hero.animate(
+        canFlipToTile
+          ? [
+              { transform: 'translate3d(0, 0, 0) scale(1)' },
+              { transform: lastTransform },
+            ]
+          : [
+              {
+                opacity: 1,
+                transform: 'translate3d(0, 0, 0) scale(1)',
+              },
+              {
+                opacity: 0,
+                transform: 'translate3d(0, 8px, 0) scale(0.99)',
+              },
+            ],
+        {
+          duration: reduceMotion ? 1 : 380,
+          easing: transitionEasing,
+          fill: 'both',
+        },
+      )
+
+      await Promise.allSettled([
+        backdropAnimation.finished,
+        imageAnimation.finished,
+      ])
+      lightbox.hidden = true
+      lightbox.setAttribute('aria-hidden', 'true')
+      hero.removeAttribute('src')
+      hero.style.transform = 'none'
+      hero.style.opacity = '1'
+      setPageScrollLocked(false)
+      setPhotoContext(null)
+      currentIndex = -1
+      isAnimating = false
+      opener?.focus({ preventScroll: true })
+    }
+
+    async function closePhoto() {
+      if (isAnimating || lightbox.hidden || currentIndex < 0) return
+
+      if (canCurrentPhotoReturnToGrid()) {
+        history.back()
+        return
+      }
+
+      setGridUrl()
+      await hidePhoto({ animateToGrid: Boolean(opener) })
+    }
+
+    async function transitionToPhoto(
+      nextIndex: number,
+      direction: number,
+      syncHistory: boolean,
+    ) {
+      if (isAnimating || currentIndex < 0) return
+      isAnimating = true
+      const safeIndex = normalizeIndex(nextIndex)
+      const distance = direction > 0 ? -24 : 24
+      const nextImage = tileImages[safeIndex]
+      const nextPreviewSrc = nextImage.currentSrc || nextImage.src
+      const nextPreviewReady = decodeImageSource(nextPreviewSrc)
+
+      const exitAnimation = hero.animate(
+        [
+          { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1)' },
+          {
+            opacity: 0,
+            transform: `translate3d(${distance}px, 0, 0) scale(0.985)`,
+          },
+        ],
+        {
+          duration: reduceMotion ? 1 : 160,
+          easing: 'ease-in',
+          fill: 'both',
+        },
+      )
+      await exitAnimation.finished.catch(() => undefined)
+
+      // The outgoing animation keeps the hero at opacity 0 while the incoming
+      // preview decodes. Without this wait, browsers may briefly paint the
+      // previous image after its src has already changed.
+      if (!(await nextPreviewReady)) hero.removeAttribute('src')
+
+      prepareHero(safeIndex)
+      if (syncHistory) {
+        setPhotoUrl(safeIndex, 'replace', canCurrentPhotoReturnToGrid())
+      }
+      const enterAnimation = hero.animate(
+        [
+          {
+            opacity: 0,
+            transform: `translate3d(${-distance}px, 0, 0) scale(0.985)`,
+          },
+          { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1)' },
+        ],
+        {
+          duration: reduceMotion ? 1 : 260,
+          easing: transitionEasing,
+          fill: 'both',
+        },
+      )
+      await enterAnimation.finished.catch(() => undefined)
+      hero.style.transform = 'none'
+      hero.style.opacity = '1'
+      syncHeroFrame()
+      isAnimating = false
+    }
+
+    async function moveToPhoto(delta: number) {
+      if (currentIndex < 0) return
+      await transitionToPhoto(currentIndex + delta, delta, true)
+    }
+
+    photoButtons.forEach((button, index) => {
+      button.addEventListener('click', () => void openPhoto(index, button), {
+        signal,
+      })
+      button.addEventListener(
+        'pointerenter',
+        () => {
+          const fullSrc = tileImages[index].dataset.fullSrc
+          if (fullSrc) {
+            const preload = new Image()
+            preload.src = fullSrc
+          }
+        },
+        { signal },
+      )
+    })
+
+    prevButton.addEventListener('click', () => void moveToPhoto(-1), { signal })
+    nextButton.addEventListener('click', () => void moveToPhoto(1), { signal })
+    lightbox.addEventListener(
+      'click',
+      (event) => {
+        if (event.target === lightbox) void closePhoto()
+      },
+      { signal },
+    )
+
+    lightbox.addEventListener(
+      'pointerdown',
+      (event) => {
+        swipeStartX = event.clientX
+      },
+      { signal },
+    )
+    lightbox.addEventListener(
+      'pointerup',
+      (event) => {
+        if (swipeStartX === null) return
+        const distance = event.clientX - swipeStartX
+        swipeStartX = null
+        if (Math.abs(distance) > 55) {
+          void moveToPhoto(distance < 0 ? 1 : -1)
+        }
+      },
+      { signal },
+    )
+    lightbox.addEventListener('wheel', (event) => event.preventDefault(), {
+      passive: false,
+      signal,
+    })
+    document.addEventListener(
+      'pointerdown',
+      (event) => {
+        if (photoDetailsOpen && !photoContext.contains(event.target as Node)) {
+          setPhotoDetailsOpen(false)
+        }
+      },
+      { signal },
+    )
+
+    document.addEventListener(
+      'keydown',
+      (event) => {
+        if (!lightbox.hidden) {
+          if (
+            event.key === 'Escape' ||
+            event.key === 'ArrowLeft' ||
+            event.key === 'ArrowRight'
+          ) {
+            event.preventDefault()
+          }
+
+          if (event.key === 'Escape' && photoDetailsOpen) {
+            setPhotoDetailsOpen(false)
+            return
+          }
+          if (event.key === 'Escape') void closePhoto()
+          if (event.key === 'ArrowLeft') void moveToPhoto(-1)
+          if (event.key === 'ArrowRight') void moveToPhoto(1)
+          return
+        }
+
+        if (event.key === 'Escape' && photoDetailsOpen) {
+          setPhotoDetailsOpen(false)
+        }
+      },
+      { signal },
+    )
+
+    async function handleRouteChange() {
+      if (isAnimating) {
+        window.setTimeout(() => {
+          if (!signal.aborted) void handleRouteChange()
+        }, transitionDuration + 20)
+        return
+      }
+
+      const slug = getPhotoSlugFromPath()
+      if (!slug) {
+        if (!lightbox.hidden) {
+          await hidePhoto({ animateToGrid: Boolean(opener) })
+        }
+        return
+      }
+
+      const index = getPhotoIndex(slug)
+      if (index < 0) {
+        setGridUrl()
+        if (!lightbox.hidden) await hidePhoto({ animateToGrid: false })
+        return
+      }
+
+      const route = getHistoryState().__photostream
+      if (route?.view !== 'photo' || route.slug !== slug) {
+        setPhotoUrl(index, 'replace', false)
+      }
+
+      if (lightbox.hidden) {
+        await openPhoto(index, photoButtons[index], {
+          syncHistory: false,
+          animateFromGrid: false,
+          canReturnToGrid: false,
+        })
+        return
+      }
+
+      if (currentIndex !== index) {
+        await transitionToPhoto(index, index > currentIndex ? 1 : -1, false)
+      }
+    }
+
+    window.addEventListener(
+      'popstate',
+      (event) => {
+        const state =
+          event.state && typeof event.state === 'object'
+            ? (event.state as PhotostreamHistoryState)
+            : null
+
+        if (!state?.__photostream) return
+
+        // These entries only change photostream UI state. Keep Astro's page
+        // router from fetching and swapping an otherwise identical document.
+        event.stopImmediatePropagation()
+        void handleRouteChange()
+      },
+      { capture: true, signal },
+    )
+
+    window.addEventListener(
+      'resize',
+      () => {
+        if (!lightbox.hidden && currentIndex >= 0 && !isAnimating) {
+          applyFrame(getTargetFrame(tileImages[currentIndex]))
+        }
+      },
+      { signal },
+    )
+
+    const initialSlug =
+      root.dataset.initialPhotoSlug?.trim() || getPhotoSlugFromPath()
+    const initialIndex = initialSlug ? getPhotoIndex(initialSlug) : -1
+
+    if (initialIndex >= 0) {
+      const route = getHistoryState().__photostream
+      const canReturnToGrid =
+        route?.view === 'photo' && route.slug === initialSlug
+          ? route.canReturnToGrid
+          : false
+      setPhotoUrl(initialIndex, 'replace', canReturnToGrid)
+      void openPhoto(initialIndex, photoButtons[initialIndex], {
+        syncHistory: false,
+        animateFromGrid: false,
+        canReturnToGrid,
+      })
+    } else if (!getPhotoSlugFromPath()) {
+      setGridUrl()
+    }
+  }
+
+  if (!runtimeWindow.__photostreamListenerInstalled) {
+    runtimeWindow.__photostreamListenerInstalled = true
+    document.addEventListener('astro:page-load', setupPhotostream)
+  }
+  setupPhotostream()
+</script>
+
+<style>
+  .photostream {
+    min-height: 100dvh;
+    background: #000;
+    color: #fff;
+  }
+
+  .glass-filter-defs {
+    position: fixed;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .photostream-controls {
+    position: fixed;
+    inset: 1rem 1rem auto;
+    z-index: 90;
+    display: flex;
+    align-items: flex-start;
+    pointer-events: none;
+  }
+
+  .photostream-controls.is-photo-open {
+    z-index: 120;
+  }
+
+  .photo-context {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    pointer-events: auto;
+    transform: translateX(-50%);
+  }
+
+  .photo-context-surface {
+    width: max-content;
+    height: 2.75rem;
+    overflow: hidden;
+    border-radius: 999px;
+    transform-origin: top center;
+    transition: background-color 250ms ease;
+    will-change: width, height, border-radius;
+  }
+
+  .photo-context-surface.is-expanded {
+    --liquid-glass-tint: 0.45;
+
+    width: min(19rem, calc(100vw - 2rem));
+    height: auto;
+    border-radius: 2.75rem;
+  }
+
+  .photo-context-surface.is-expanded.is-photostream-expanded {
+    width: min(23rem, calc(100vw - 2rem));
+  }
+
+  @supports (corner-shape: squircle) {
+    .photo-context-surface {
+      corner-shape: round;
+    }
+
+    .photo-context-surface.is-expanded {
+      corner-shape: squircle;
+    }
+  }
+
+  .glass-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    border-radius: 999px;
+    color: rgb(255 255 255 / 88%);
+    pointer-events: auto;
+    transition:
+      transform 180ms ease,
+      background-color 180ms ease;
+  }
+
+  .glass-button:hover {
+    transform: translateY(-1px);
+    color: #fff;
+  }
+
+  .glass-button:active {
+    transform: translateY(0) scale(0.97);
+  }
+
+  .glass-icon {
+    display: inline-flex;
+    width: 2.75rem;
+    height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+  }
+
+  .glass-label {
+    gap: 0.55rem;
+    max-width: min(20rem, calc(100vw - 8rem));
+    padding: 0 1rem;
+    font-size: 0.8125rem;
+    font-weight: 560;
+    letter-spacing: -0.01em;
+  }
+
+  .photo-context-button {
+    width: 100%;
+    min-width: 7rem;
+  }
+
+  .photo-context-surface.is-photostream-expanded .photo-context-button {
+    max-width: none;
+  }
+
+  .photo-context-button:hover,
+  .photo-context-button:active {
+    transform: none;
+  }
+
+  .photo-context-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .photo-context-note-indicator {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    color: rgb(255 255 255 / 58%);
+  }
+
+  .photo-context-note-indicator[hidden] {
+    display: none;
+  }
+
+  .photo-context-chevron {
+    display: inline-flex;
+    flex: none;
+    color: rgb(255 255 255 / 56%);
+  }
+
+  .photo-context-chevron svg {
+    transition-property: transform, translate, scale, rotate;
+    transition-duration: 360ms;
+    transition-timing-function: cubic-bezier(0.3, 1.18, 0.6, 1);
+  }
+
+  .photo-context-chevron[hidden] {
+    display: none;
+  }
+
+  .photo-context-chevron.is-open svg {
+    scale: 1 -1;
+  }
+
+  .photo-details {
+    padding: 0.35rem 1rem 1rem;
+    color: #fff;
+  }
+
+  .photo-details[hidden] {
+    display: none;
+  }
+
+  .photo-details-note {
+    margin: 0.05rem 0 0.8rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgb(255 255 255 / 12%);
+    color: rgb(255 255 255 / 84%);
+    font-size: 0.8rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+
+  .photo-details-note[hidden] {
+    display: none;
+  }
+
+  .photo-details dl {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .photo-details dl div {
+    display: grid;
+    grid-template-columns: 1.1rem minmax(0, 1fr);
+    gap: 0.65rem;
+    align-items: start;
+  }
+
+  .photo-details dl div[hidden] {
+    display: none;
+  }
+
+  .photo-details dt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 0.05rem;
+    color: rgb(255 255 255 / 42%);
+  }
+
+  .photo-details dd {
+    min-width: 0;
+    min-height: 1rem;
+    color: rgb(255 255 255 / 72%);
+    font-size: 0.78rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .photostream-details {
+    padding-top: 0.45rem;
+  }
+
+  .photostream-intro {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .photostream-intro h2 {
+    color: rgb(255 255 255 / 92%);
+    font-size: 1.05rem;
+    font-weight: 620;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+  }
+
+  .photostream-intro p {
+    color: rgb(255 255 255 / 66%);
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+
+  .photostream-intro .photostream-signoff {
+    color: rgb(255 255 255 / 82%);
+  }
+
+  .photostream-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
+    background: #000;
+  }
+
+  .photostream-item {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    background: #111;
+    aspect-ratio: var(--photo-ratio, 4 / 3);
+  }
+
+  .photostream-tile {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #111;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .photostream-tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition:
+      opacity 360ms ease,
+      filter 300ms ease;
+  }
+
+  .photostream-tile img[data-loaded='true'] {
+    opacity: 1;
+  }
+
+  .photostream-tile img[data-loaded='error'] {
+    opacity: 0;
+  }
+
+  .photostream-tile:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -3px;
+  }
+
+  .photostream-empty {
+    display: grid;
+    min-height: 100dvh;
+    place-content: center;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .photostream-empty h1 {
+    margin-top: 0.5rem;
+    font-size: clamp(2rem, 6vw, 4rem);
+    font-weight: 550;
+    letter-spacing: -0.05em;
+  }
+
+  .photostream-empty > p:last-child {
+    max-width: 30rem;
+    margin: 1rem auto 0;
+    color: rgb(255 255 255 / 55%);
+  }
+
+  .eyebrow {
+    color: rgb(255 255 255 / 48%);
+    font-size: 0.68rem;
+    font-weight: 650;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 110;
+    overflow: hidden;
+    background: rgb(0 0 0 / 96%);
+    overscroll-behavior: contain;
+    touch-action: none;
+  }
+
+  .lightbox[hidden] {
+    display: none;
+  }
+
+  .lightbox-image {
+    position: fixed;
+    z-index: 1;
+    display: block;
+    max-width: none;
+    max-height: none;
+    object-fit: contain;
+    user-select: none;
+    will-change: transform;
+  }
+
+  .lightbox-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid rgb(255 255 255 / 10%);
+    border-radius: 0.8rem;
+    background: rgb(0 0 0 / 32%);
+    font-size: 0.78rem;
+    backdrop-filter: blur(16px);
+    transition: opacity 180ms ease;
+  }
+
+  .lightbox-meta small {
+    color: rgb(255 255 255 / 52%);
+    font-size: 0.66rem;
+  }
+
+  .lightbox-nav {
+    position: absolute;
+    top: 50%;
+    z-index: 4;
+    display: none;
+    transform: translateY(-50%);
+  }
+
+  .lightbox-nav:hover {
+    transform: translateY(calc(-50% - 1px));
+  }
+
+  .lightbox-prev {
+    left: 1rem;
+  }
+
+  .lightbox-next {
+    right: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .photostream-controls {
+      inset: 1.25rem 1.25rem auto;
+    }
+
+    .photostream-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: calc((100vw - 3px) * 0.0416667 - 2.75px);
+      grid-auto-flow: dense;
+    }
+
+    .photostream-item {
+      aspect-ratio: auto;
+      grid-row: span var(--row-span, 9);
+    }
+
+    .photostream-intro h2 {
+      font-size: 0.95rem;
+    }
+
+    .photostream-intro p {
+      font-size: 0.84rem;
+      line-height: 1.5;
+    }
+  }
+
+  @media (min-width: 900px) {
+    .lightbox-nav {
+      display: inline-flex;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .photostream-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-auto-rows: calc((100vw - 9px) * 0.0208333 - 2.75px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .photostream-tile img,
+    .glass-button,
+    .photo-context-chevron svg {
+      transition-duration: 1ms;
+    }
+  }
+</style>

@@ -47,7 +47,21 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['Geist', ...defaultTheme.fontFamily.sans],
+        sans: ['Figtree Variable', 'Geist', ...defaultTheme.fontFamily.sans],
+        display: [
+          'Instrument Serif',
+          'Iowan Old Style',
+          'Baskerville',
+          'Times New Roman',
+          'serif',
+        ],
+        editorial: [
+          'var(--font-editorial)',
+          'Iowan Old Style',
+          'Baskerville',
+          'Times New Roman',
+          'serif',
+        ],
         mono: ['Geist Mono', ...defaultTheme.fontFamily.mono],
       },
       colors: {

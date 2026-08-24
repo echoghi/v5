@@ -9,23 +9,26 @@ import { SITE } from '@/site.config'
 ---
 
 <Layout title="404" description={SITE.DESCRIPTION}>
-  <Container class="flex grow flex-col gap-y-6">
+  <Container class="flex grow flex-col gap-10">
     <Breadcrumbs items={[{ label: '???', icon: 'lucide:circle-help' }]} />
 
     <section
-      class="flex flex-col items-center justify-center gap-y-4 text-center"
+      class="flex min-h-[55dvh] flex-col items-center justify-center gap-7 text-center"
     >
-      <div class="max-w-md">
-        <h1 class="mb-4 text-3xl font-bold">404: Page not found</h1>
-        <p class="prose prose-flexoki dark:prose-invert">
-          Oops! The page you're looking for doesn't exist.
+      <div class="flex max-w-lg flex-col items-center gap-3">
+        <p class="font-sans text-sm text-muted-foreground">404</p>
+        <h1 class="text-balance text-5xl font-semibold tracking-tight">
+          Nothing lives here yet.
+        </h1>
+        <p class="text-pretty text-lg text-muted-foreground">
+          The page may have moved, or the path may be unfinished.
         </p>
       </div>
       <Link
         href="/"
         class={cn(
           buttonVariants({ variant: 'outline' }),
-          'flex gap-x-1.5 group',
+          'group flex gap-x-1.5',
         )}
       >
         <span class="transition-transform group-hover:-translate-x-1"

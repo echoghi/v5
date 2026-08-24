@@ -4,6 +4,10 @@ export type Song = {
   id: string
 }
 
+export type PlaylistSong = Song & {
+  collectionId: string
+}
+
 export interface SongData {
   title: string
   artist: string
@@ -100,3 +104,9 @@ export const songs: Record<string, Song[]> = {
     },
   ],
 }
+
+export const photostreamPlaylist: PlaylistSong[] = Object.entries(
+  songs,
+).flatMap(([collectionId, playlist]) =>
+  playlist.map((song) => ({ ...song, collectionId })),
+)

@@ -2,21 +2,18 @@
 
 # emile.sh
 
-The source for [emile.sh](https://emile.sh), a personal site built around photo galleries, writing, and small web experiments.
+The source for [emile.sh](https://emile.sh), a personal site built around a continuous photostream, writing, and small web experiments.
 
 ### Features
 
-- **Photo galleries hosted on Cloudflare R2**
-  Optimized, globally distributed image galleries with fast load times and efficient storage.
+- **Fullscreen photostream hosted on Cloudflare R2**
+  Every archive is mixed into one edge-to-edge masonry stream with aspect-ratio placeholders and FLIP + WAAPI photo transitions.
 
-- **Gallery music player**
-  Photo galleries can have their own playlists. The player includes a live five-band Web Audio spectrum and a slowly spinning album cover.
+- **Photostream music player**
+  One combined playlist floats over the stream. The player includes a live five-band Web Audio spectrum and a slowly spinning album cover.
 
-- **Blog**
+- **Posts**
   A writing space for long-form posts, notes, and ideas.
-
-- **Work showcase**
-  Dedicated sections to highlight projects, experiments, and professional work.
 
 ### Tech Stack
 
@@ -176,20 +173,37 @@ Photo-gallery playlists remain in `src/consts.ts`. Deployment-specific values an
 
 ### 1) Add raw images (gitignored)
 
-- Place raw images (`.jpg`, `.png`, or `.webp`) in a top-level folder called **`photos/`** (this folder is gitignored).
+- Place raw images (`.heic`, `.heif`, `.jpg`, `.png`, or `.webp`) in the
+  gitignored top-level **`photos-google/`** folder.
 - For each gallery, create a source folder named:
 
 ```
-photos/<album-slug>-source/
+photos-google/<album-slug>-source/
 ```
 
 Example:
 
 ```
-photos/san-francisco-source/
+photos-google/san-francisco-source/
   IMG_001.jpg
   IMG_002.png
 ```
+
+The previous source tree remains available in the gitignored `photos/` folder.
+To use it temporarily without changing code, prefix a photo command with
+`PHOTO_SOURCE_DIR=photos`.
+
+For a flat Google Photos download, keep the untouched ZIP in `photos-google/`,
+extract it into `photos-google/export/`, then run:
+
+```bash
+npm run photos:organize
+```
+
+The organizer matches existing published photos visually and assigns additional
+photos from their preserved filename, capture-time, and GPS metadata. HEIC files
+are converted to metadata-preserving JPEG working copies; their originals stay
+untouched in `photos-google/export/`.
 
 ### 2) Create the gallery content entry
 
@@ -223,7 +237,7 @@ image: '/src/assets/images/sf-preview.jpg'
 /src/assets/images/sf-preview.jpg
 ```
 
-This image is used for gallery cards and previews.
+This image is retained as collection-level metadata for future social or admin previews; the public `/photos` stream uses the R2 preview objects directly.
 
 ---
 
@@ -250,11 +264,13 @@ npm run process-images -- thailand vietnam
   - When specific gallery slugs are provided, only those galleries are scanned
 
 - For each gallery:
-  - Reads raw images from `photos/<album-slug>-source/`
+  - Reads raw images from `photos-google/<album-slug>-source/`
   - Generates a **stable hash-based filename** per image
   - Creates and uploads:
     - A **full-size WebP** (max height 900px)
     - A **preview JPEG** (≈610px wide)
+
+- Updates `src/data/photo-manifest.json` with the source dimensions used to reserve the masonry layout before remote images load
 
 - Uploads everything to Cloudflare R2 under:
 
@@ -265,21 +281,79 @@ npm run process-images -- thailand vietnam
 
 Once complete, all gallery images are optimized, uploaded, and ready to be served globally from R2.
 
+To rebuild only the local dimension manifest without changing R2, run:
+
+```bash
+npm run photos:manifest
+```
+
+To extract camera, lens, GPS, capture-time, and exposure metadata from the
+gitignored source images without uploading or deleting anything in R2, run:
+
+```bash
+npm run photos:metadata
+```
+
+Metadata is stored alongside each image's hash in
+`src/data/photo-manifest.json`. Existing manifest values are preserved so
+manually entered camera and location overrides remain authoritative.
+
+To turn embedded GPS coordinates into human-readable location labels, run:
+
+```bash
+npm run photos:locations
+```
+
+This downloads the generic GeoNames worldwide place-name dataset into the
+gitignored photo source folder, then finds the nearest named place entirely on
+this Mac. Photo coordinates are never sent to a third party. It fills only blank
+locations and marks generated labels in the manifest so
+`npm run photos:locations -- --refresh` can refresh them later; locations saved
+through the review screen become manual overrides and are never overwritten.
+Place-name data is provided by GeoNames under CC BY 4.0.
+
+Because this repository is public, sanitize the manifest after deriving its
+location labels and before committing it:
+
+```bash
+npm run photos:sanitize
+```
+
+This removes exact coordinates, timezone offsets, and time-of-day values while
+preserving capture dates and the human-readable location, camera, lens,
+exposure, and dimension metadata used by the site.
+
+If the R2 bucket contains legacy image hashes, link those existing objects to
+their local originals using perceptual fingerprints and copy the extracted
+metadata into their manifest records:
+
+```bash
+npm run photos:sync-metadata
+```
+
+This command reads R2 previews but only writes the local manifest. It does not
+upload, replace, or delete remote images.
+
+For legacy R2 objects whose original hashes no longer match the local source hash, merge their preview dimensions into the manifest with the read-only command:
+
+```bash
+npm run photos:sync-manifest
+```
+
 ---
 
-## Adding Music to a Gallery (Optional)
+## Adding Music to the Photostream (Optional)
 
-Galleries can optionally include a custom music player.
-If **no music is provided**, the player will **not render**.
+Songs remain organized by gallery slug on disk, but every registered song is flattened into the single photostream playlist. If **no music is provided**, the player will **not render**.
 
 **Notes**
 
-- The player is rendered only for gallery slugs with a non-empty playlist
-- The current layout displays it at Tailwind's **`2xl` breakpoint (1536px and wider)**
+- The player renders whenever the combined playlist has at least one track
+- The compact overlay is available on mobile and desktop
 - Browsers require the first playback to come from a user interaction
 - Once activated, playback can also be toggled with the spacebar when focus is not inside a control or editable field
 - The player starts minimized, expands when you press play, and can be minimized again without stopping playback
-- Music is associated with a gallery via its **slug**
+- The gallery **slug** still determines each MP3's folder
 - Audio uses `preload="metadata"`; full tracks are not intentionally preloaded on page load
 
 ### How the spectrum works
@@ -296,12 +370,12 @@ The five bars are driven directly by an `AnalyserNode` connected to the playing 
 
 The bars update from the live frequency data while audio is playing. No waveform JSON, preprocessing step, or per-song height configuration is required.
 
-### 1) Register songs for a gallery
+### 1) Register songs
 
 Add song metadata to `src/consts.ts`.
 
 - The key must match the **gallery slug**
-- Each entry represents one track in the gallery playlist
+- Each entry represents one track in the combined photostream playlist
 
 #### Song fields
 

@@ -80,7 +80,7 @@ export default defineConfig({
 
   integrations: [sitemap(), mdx(), react()],
 
-  trailingSlash: 'never',
+  trailingSlash: 'ignore',
 
   markdown: {
     syntaxHighlight: false,

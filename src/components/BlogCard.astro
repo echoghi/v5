@@ -1,9 +1,7 @@
 ---
-import Icon from '@/components/Icon.astro'
 import Link from '@/components/Link.astro'
 import AvatarComponent from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import VisitorCount from '@/components/VisitorCount.tsx'
 import { pageviewAnalyticsConfig } from '@/lib/server-config'
 import { parseAuthors } from '@/lib/server-utils'
@@ -24,39 +22,56 @@ const readTime = readingTime(entry.body!)
 const authors = await parseAuthors(entry.data.authors ?? [])
 ---
 
-<div
-  class="not-prose rounded-md border p-4 transition-colors duration-300 ease-in-out hover:bg-secondary/30"
->
+<article class="not-prose group">
   <Link
-    href={`/${entry.collection}/${entry.id}`}
-    class="flex flex-col gap-4 sm:flex-row"
+    href={`/posts/${entry.id}`}
+    class="grid cursor-pointer gap-5 rounded-[min(1.4vw,1rem)] px-1 py-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[14rem_minmax(0,1fr)] sm:px-2 sm:py-7"
   >
     {
       entry.data.image && (
-        <div class="w-full sm:max-w-[200px] sm:flex-shrink-0">
+        <div class="self-start overflow-hidden rounded-[min(1.2vw,0.875rem)] bg-secondary/35 outline outline-1 -outline-offset-1 outline-foreground/5">
           <Image
             src={entry.data.image}
-            alt={entry.data.title}
+            alt=""
             width={1200}
             height={630}
-            class="rounded-sm object-cover grayscale"
+            class="h-auto w-full"
           />
         </div>
       )
     }
-    <div class="flex-grow">
-      <h3 class="mb-1 text-lg font-semibold">
-        {entry.data.title}
-      </h3>
-      <p class="mb-2 text-sm text-muted-foreground">
-        {entry.data.previewDescription}
-      </p>
+    <div class="flex min-w-0 flex-col justify-between gap-5">
+      <div class="flex flex-col gap-2">
+        <div
+          class="flex flex-wrap items-center gap-x-2 font-sans text-sm text-muted-foreground"
+        >
+          <time datetime={entry.data.date.toISOString()}>{formattedDate}</time>
+          <span aria-hidden="true">·</span>
+          <span>{readTime} read</span>
+          {
+            pageviewAnalyticsConfig && (
+              <>
+                <span aria-hidden="true">·</span>
+                <VisitorCount path={`/posts/${entry.id}`} client:load />
+              </>
+            )
+          }
+        </div>
+        <h3
+          class="text-balance font-sans text-2xl font-semibold tracking-tight sm:text-[1.7rem]"
+        >
+          {entry.data.title}
+        </h3>
+        <p class="max-w-[62ch] text-pretty text-base text-muted-foreground">
+          {entry.data.previewDescription}
+        </p>
+      </div>
       <div
-        class="mb-2 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground"
+        class="flex flex-wrap items-center justify-between gap-3 text-base text-muted-foreground sm:text-sm"
       >
         {
           authors.length > 0 && (
-            <>
+            <div class="flex flex-wrap items-center gap-2">
               {authors.map((author) => (
                 <div class="flex items-center gap-x-1.5">
                   <AvatarComponent
@@ -69,36 +84,19 @@ const authors = await parseAuthors(entry.data.authors ?? [])
                   <span>{author.name}</span>
                 </div>
               ))}
-              <Separator orientation="vertical" className="h-4" />
-            </>
+            </div>
           )
         }
-        <span>{formattedDate}</span>
-        <Separator orientation="vertical" className="h-4" />
         {
-          pageviewAnalyticsConfig && (
-            <>
-              <VisitorCount
-                path={`/${entry.collection}/${entry.id}`}
-                client:load
-              />
-              <Separator orientation="vertical" className="h-4" />
-            </>
+          entry.data.tags && (
+            <div class="flex flex-wrap gap-1.5">
+              {entry.data.tags.slice(0, 3).map((tag) => (
+                <Badge variant="secondary">{tag}</Badge>
+              ))}
+            </div>
           )
         }
-        <span class="flex items-center gap-1"
-          ><Icon name="lucide:clock" class="size-3" />{readTime}</span
-        >
       </div>
-      {
-        entry.data.tags && (
-          <div class="flex flex-wrap gap-2">
-            {entry.data.tags.map((tag) => (
-              <Badge variant="secondary">{tag}</Badge>
-            ))}
-          </div>
-        )
-      }
     </div>
   </Link>
-</div>
+</article>

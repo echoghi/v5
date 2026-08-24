@@ -1,0 +1,1258 @@
+---
+import type { PhotostreamImage } from '@/lib/server-utils'
+
+type Props = {
+  images: PhotostreamImage[]
+}
+
+const { images } = Astro.props
+const collections = [
+  ...new Set(images.map((image) => image.collectionName)),
+].sort((a, b) => a.localeCompare(b))
+const locations = [
+  ...new Set(
+    images
+      .filter((image) => image.hasExplicitLocation)
+      .map((image) => image.location.trim())
+      .filter(Boolean),
+  ),
+].sort((a, b) => a.localeCompare(b))
+const cameras = [
+  ...new Set(
+    images
+      .map((image) => image.camera?.trim())
+      .filter((camera): camera is string => Boolean(camera)),
+  ),
+].sort((a, b) => a.localeCompare(b))
+
+function getMissingMetadata(image: PhotostreamImage) {
+  return [
+    !image.capturedAt && 'Capture date',
+    !image.camera && 'Camera',
+    !image.hasExplicitLocation &&
+      (image.latitude != null && image.longitude != null
+        ? 'Location label (GPS available)'
+        : 'Location'),
+  ].filter((item): item is string => Boolean(item))
+}
+
+const incompleteCount = images.filter(
+  (image) => getMissingMetadata(image).length > 0,
+).length
+---
+
+<main id="photo-review-app" class="isolate min-h-dvh bg-neutral-950">
+  <header
+    class="sticky top-0 z-30 border-b border-white/10 bg-neutral-950/90 px-3 py-3 backdrop-blur-xl sm:px-5 lg:px-7"
+  >
+    <div
+      class="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between"
+    >
+      <div class="min-w-0">
+        <div class="flex items-center gap-2 text-base sm:text-sm">
+          <a
+            href="/photos"
+            class="rounded-md px-2 py-1 text-neutral-400 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
+          >
+            ← Photos
+          </a>
+          <span
+            class="rounded-full bg-amber-400/10 px-2 py-1 font-medium text-amber-200 ring-1 ring-amber-300/20"
+          >
+            Local only
+          </span>
+        </div>
+        <h1
+          class="mt-2 text-balance text-2xl font-semibold tracking-tight sm:text-3xl"
+        >
+          Photo metadata review
+        </h1>
+        <p
+          class="mt-1 max-w-[70ch] text-pretty text-base text-neutral-400 sm:text-sm"
+        >
+          Hover for missing fields. Open a photo, add a public note or private
+          review context, then save and continue.
+        </p>
+      </div>
+
+      <dl class="flex shrink-0 divide-x divide-white/10 text-base sm:text-sm">
+        <div class="pr-4">
+          <dt class="truncate text-neutral-500">Photos</dt>
+          <dd
+            id="photo-total-count"
+            class="mt-1 font-mono font-medium tabular-nums"
+          >
+            {images.length}
+          </dd>
+        </div>
+        <div class="px-4">
+          <dt class="truncate text-neutral-500">Incomplete</dt>
+          <dd
+            id="incomplete-count"
+            class="mt-1 font-mono font-medium tabular-nums"
+          >
+            {incompleteCount}
+          </dd>
+        </div>
+        <div class="pl-4">
+          <dt class="truncate text-neutral-500">Reviewed</dt>
+          <dd
+            id="reviewed-count"
+            class="mt-1 font-mono font-medium tabular-nums"
+          >
+            0
+          </dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="mt-3 grid gap-2 sm:grid-cols-[minmax(14rem,1fr)_auto_auto]">
+      <label class="min-w-0">
+        <span class="sr-only">Search photos</span>
+        <input
+          id="photo-review-search"
+          type="search"
+          name="search"
+          placeholder="Search location, camera, collection, or photo ID"
+          class="h-11 w-full rounded-lg bg-white/5 px-3 text-base text-white ring-1 ring-white/10 placeholder:text-neutral-500 focus:outline-2 focus:-outline-offset-1 focus:outline-sky-400 sm:h-9 sm:text-sm"
+        />
+      </label>
+
+      <label class="relative grid min-w-0 grid-cols-[1fr_2rem] sm:min-w-48">
+        <span class="sr-only">Filter by collection</span>
+        <select
+          id="photo-review-collection"
+          name="collection"
+          class="col-span-full row-start-1 h-11 appearance-none rounded-lg bg-white/5 py-2 pl-3 pr-8 text-base text-white ring-1 ring-white/10 focus:outline-2 focus:-outline-offset-1 focus:outline-sky-400 sm:h-9 sm:text-sm"
+        >
+          <option value="">All collections</option>
+          {
+            collections.map((collection) => (
+              <option value={collection}>{collection}</option>
+            ))
+          }
+        </select>
+        <svg
+          viewBox="0 0 8 5"
+          width="8"
+          height="5"
+          fill="none"
+          class="pointer-events-none col-start-2 row-start-1 place-self-center text-neutral-400"
+          aria-hidden="true"
+        >
+          <path d="M.5.5 4 4 7.5.5" stroke="currentColor"></path>
+        </svg>
+      </label>
+
+      <label class="relative grid min-w-0 grid-cols-[1fr_2rem] sm:min-w-44">
+        <span class="sr-only">Filter by review status</span>
+        <select
+          id="photo-review-status"
+          name="status"
+          class="col-span-full row-start-1 h-11 appearance-none rounded-lg bg-white/5 py-2 pl-3 pr-8 text-base text-white ring-1 ring-white/10 focus:outline-2 focus:-outline-offset-1 focus:outline-sky-400 sm:h-9 sm:text-sm"
+        >
+          <option value="incomplete">Needs metadata</option>
+          <option value="unreviewed">Not reviewed</option>
+          <option value="reviewed">Reviewed</option>
+          <option value="complete">Core metadata complete</option>
+          <option value="all">All photos</option>
+        </select>
+        <svg
+          viewBox="0 0 8 5"
+          width="8"
+          height="5"
+          fill="none"
+          class="pointer-events-none col-start-2 row-start-1 place-self-center text-neutral-400"
+          aria-hidden="true"
+        >
+          <path d="M.5.5 4 4 7.5.5" stroke="currentColor"></path>
+        </svg>
+      </label>
+    </div>
+
+    <p class="mt-2 text-base text-neutral-500 sm:text-sm" aria-live="polite">
+      Showing <span id="visible-count" class="font-mono tabular-nums"
+        >{images.length}</span
+      > photos
+    </p>
+  </header>
+
+  <section class="p-1.5 sm:p-2" aria-label="Photos awaiting metadata review">
+    <p
+      id="photo-review-empty"
+      class="hidden py-24 text-center text-base text-neutral-400 sm:text-sm"
+    >
+      No photos match these filters.
+    </p>
+
+    <ul
+      id="photo-review-grid"
+      class="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6"
+      role="list"
+    >
+      {
+        images.map((image, index) => {
+          const missing = getMissingMetadata(image)
+          const searchableText = [
+            image.manifestKey,
+            image.collectionName,
+            image.location,
+            image.camera,
+            image.lens,
+            image.publicNote,
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLocaleLowerCase()
+
+          return (
+            <li data-photo-item>
+              <button
+                type="button"
+                class="group relative aspect-square w-full overflow-hidden rounded-lg bg-neutral-900 text-left outline-1 -outline-offset-1 outline-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
+                aria-label={`Review ${image.manifestKey}. ${missing.length ? `Missing ${missing.join(', ')}` : 'Core metadata complete'}.`}
+                data-photo-button
+                data-photo-index={index}
+                data-photo-key={image.manifestKey}
+                data-preview-src={image.previewSrc}
+                data-full-src={image.fullSrc}
+                data-collection={image.collectionName}
+                data-public-note={image.publicNote ?? ''}
+                data-captured-at={image.capturedAt ?? ''}
+                data-camera={image.camera ?? ''}
+                data-lens={image.lens ?? ''}
+                data-location={image.location}
+                data-explicit-location={String(image.hasExplicitLocation)}
+                data-latitude={image.latitude ?? ''}
+                data-longitude={image.longitude ?? ''}
+                data-missing-count={missing.length}
+                data-search={searchableText}
+                data-reviewed="false"
+                data-removed="false"
+              >
+                <img
+                  src={image.previewSrc}
+                  alt=""
+                  loading={index < 12 ? 'eager' : 'lazy'}
+                  decoding="async"
+                  draggable="false"
+                  class="size-full shrink-0 object-cover"
+                  width={image.width}
+                  height={image.height}
+                />
+
+                <span class="absolute left-2 top-2 rounded-full bg-black/75 px-2 py-1 font-mono text-[0.6875rem] font-medium tabular-nums text-white ring-1 ring-white/10 backdrop-blur-md">
+                  {String(index + 1).padStart(3, '0')}
+                </span>
+
+                <span class="reviewed-indicator absolute right-2 top-2 hidden rounded-full bg-emerald-400 px-2 py-1 text-[0.6875rem] font-medium text-emerald-950 ring-1 ring-emerald-300">
+                  Reviewed
+                </span>
+
+                <span class="review-hover absolute inset-0 flex flex-col justify-end p-3 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">
+                  <span class="review-missing-summary text-base font-medium text-white sm:text-sm">
+                    {missing.length
+                      ? `${missing.length} ${missing.length === 1 ? 'field' : 'fields'} incomplete`
+                      : 'Core metadata complete'}
+                  </span>
+                  <span class="review-missing-detail mt-1 text-base text-neutral-300 sm:text-sm">
+                    {missing.length ? missing.join(' · ') : image.location}
+                  </span>
+                  <span class="mt-2 truncate font-mono text-[0.6875rem] text-neutral-400">
+                    {image.manifestKey}
+                  </span>
+                </span>
+              </button>
+            </li>
+          )
+        })
+      }
+    </ul>
+  </section>
+</main>
+
+<dialog
+  id="photo-review-dialog"
+  class="m-auto h-[min(92dvh,56rem)] w-[min(96vw,76rem)] max-w-none overflow-hidden rounded-2xl bg-neutral-900 p-0 text-white shadow-none ring-1 ring-white/10"
+  aria-labelledby="photo-review-dialog-title"
+>
+  <div
+    class="grid size-full min-h-0 md:grid-cols-[minmax(0,3fr)_minmax(20rem,2fr)]"
+  >
+    <figure class="relative min-h-0 bg-black md:h-full">
+      <img
+        id="photo-review-dialog-image"
+        src=""
+        alt=""
+        class="size-full max-h-[42dvh] shrink-0 object-contain md:max-h-none"
+      />
+      <figcaption
+        id="photo-review-dialog-position"
+        class="absolute bottom-3 left-3 rounded-full bg-black/75 px-2 py-1 font-mono text-[0.6875rem] tabular-nums text-neutral-200 ring-1 ring-white/10 backdrop-blur-md"
+      >
+      </figcaption>
+    </figure>
+
+    <section class="flex min-h-0 min-w-0 flex-col bg-neutral-900">
+      <header
+        class="flex items-start justify-between gap-3 border-b border-white/10 p-4 sm:p-5"
+      >
+        <div class="min-w-0">
+          <p
+            id="photo-review-dialog-collection"
+            class="text-base text-neutral-400 sm:text-sm"
+          >
+          </p>
+          <h2
+            id="photo-review-dialog-title"
+            class="mt-1 truncate font-mono text-lg font-medium text-white"
+          >
+          </h2>
+        </div>
+        <button
+          id="photo-review-close"
+          type="button"
+          class="relative grid size-9 shrink-0 place-items-center rounded-full bg-white/10 text-neutral-300 ring-1 ring-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
+          aria-label="Close photo review"
+        >
+          <span
+            class="pointer-fine:hidden absolute left-1/2 top-1/2 size-[max(100%,3rem)] -translate-x-1/2 -translate-y-1/2"
+            aria-hidden="true"></span>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            class="size-5 shrink-0"
+            aria-hidden="true"
+          >
+            <path
+              d="M6 6l12 12M18 6 6 18"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"></path>
+          </svg>
+        </button>
+      </header>
+
+      <div class="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+        <div>
+          <h3 class="text-base font-medium text-white sm:text-sm">
+            Current metadata
+          </h3>
+          <dl
+            class="mt-3 divide-y divide-white/10 rounded-xl bg-white/5 px-3 ring-1 ring-white/10"
+          >
+            <div
+              class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3 py-2.5 text-base sm:text-sm"
+            >
+              <dt class="text-neutral-500">Date</dt>
+              <dd id="photo-review-date" class="min-w-0 text-neutral-200"></dd>
+            </div>
+            <div
+              class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3 py-2.5 text-base sm:text-sm"
+            >
+              <dt class="text-neutral-500">Camera</dt>
+              <dd id="photo-review-camera" class="min-w-0 text-neutral-200">
+              </dd>
+            </div>
+            <div
+              class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3 py-2.5 text-base sm:text-sm"
+            >
+              <dt class="text-neutral-500">Lens</dt>
+              <dd id="photo-review-lens" class="min-w-0 text-neutral-200"></dd>
+            </div>
+            <div
+              class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3 py-2.5 text-base sm:text-sm"
+            >
+              <dt class="text-neutral-500">Location</dt>
+              <dd id="photo-review-location" class="min-w-0 text-neutral-200">
+              </dd>
+            </div>
+            <div
+              class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3 py-2.5 text-base sm:text-sm"
+            >
+              <dt class="text-neutral-500">GPS</dt>
+              <dd
+                id="photo-review-gps"
+                class="min-w-0 font-mono text-neutral-200"
+              >
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="mt-5">
+          <h3 class="text-base font-medium text-white sm:text-sm">
+            Still needed
+          </h3>
+          <ul
+            id="photo-review-missing"
+            class="mt-2 flex flex-wrap gap-1.5"
+            role="list"
+          >
+          </ul>
+        </div>
+
+        <div class="mt-5">
+          <label
+            for="photo-review-location-input"
+            class="text-base font-medium text-white sm:text-sm"
+          >
+            Photo location
+          </label>
+          <p class="mt-1 text-pretty text-base text-neutral-500 sm:text-sm">
+            Choose a saved location or type a new one.
+          </p>
+          <input
+            id="photo-review-location-input"
+            name="location"
+            type="text"
+            list="photo-review-location-options"
+            maxlength="500"
+            autocomplete="off"
+            placeholder="Search saved locations…"
+            class="mt-3 h-11 w-full rounded-xl bg-black/25 px-3 text-base text-white ring-1 ring-white/10 placeholder:text-neutral-600 focus:outline-2 focus:-outline-offset-1 focus:outline-sky-400 sm:h-9 sm:text-sm"
+          />
+          <datalist id="photo-review-location-options">
+            {locations.map((location) => <option value={location} />)}
+          </datalist>
+        </div>
+
+        <div class="mt-5">
+          <label
+            for="photo-review-camera-input"
+            class="text-base font-medium text-white sm:text-sm"
+          >
+            Camera
+          </label>
+          <p class="mt-1 text-pretty text-base text-neutral-500 sm:text-sm">
+            Choose a saved camera or type a new one.
+          </p>
+          <input
+            id="photo-review-camera-input"
+            name="camera"
+            type="text"
+            list="photo-review-camera-options"
+            maxlength="500"
+            autocomplete="off"
+            placeholder="Search saved cameras…"
+            class="mt-3 h-11 w-full rounded-xl bg-black/25 px-3 text-base text-white ring-1 ring-white/10 placeholder:text-neutral-600 focus:outline-2 focus:-outline-offset-1 focus:outline-sky-400 sm:h-9 sm:text-sm"
+          />
+          <datalist id="photo-review-camera-options">
+            {cameras.map((camera) => <option value={camera} />)}
+          </datalist>
+        </div>
+
+        <div class="mt-5">
+          <label
+            for="photo-review-public-note"
+            class="text-base font-medium text-white sm:text-sm"
+          >
+            Public photo note
+          </label>
+          <p class="mt-1 text-pretty text-base text-neutral-500 sm:text-sm">
+            Shown in the photo details dropdown. Leaving this blank also hides
+            the note icon beside the date.
+          </p>
+          <textarea
+            id="photo-review-public-note"
+            name="publicNote"
+            rows="4"
+            maxlength="2000"
+            placeholder="Add a title, memory, or short description for visitors…"
+            class="mt-3 min-h-28 w-full resize-y rounded-xl bg-black/25 p-3 text-base text-white ring-1 ring-white/10 placeholder:text-neutral-600 focus:outline-2 focus:-outline-offset-1 focus:outline-sky-400 sm:text-sm"
+          ></textarea>
+        </div>
+
+        <div class="mt-5">
+          <label
+            for="photo-review-note"
+            class="text-base font-medium text-white sm:text-sm"
+          >
+            Private review note
+          </label>
+          <p class="mt-1 text-pretty text-base text-neutral-500 sm:text-sm">
+            Only used in this local review workflow. Plain language is fine—for
+            example, “Hua Hin, Thailand; camera was the DJI Mini 2.”
+          </p>
+          <textarea
+            id="photo-review-note"
+            name="note"
+            rows="6"
+            maxlength="10000"
+            placeholder="Add location, camera, date corrections, or anything else you remember…"
+            class="mt-3 min-h-36 w-full resize-y rounded-xl bg-black/25 p-3 text-base text-white ring-1 ring-white/10 placeholder:text-neutral-600 focus:outline-2 focus:-outline-offset-1 focus:outline-sky-400 sm:text-sm"
+          ></textarea>
+
+          <label
+            for="photo-review-remove"
+            class="mt-5 flex cursor-pointer items-start gap-3 rounded-xl bg-rose-400/5 p-3 ring-1 ring-rose-300/15"
+          >
+            <span class="flex h-6 items-center text-base sm:h-5 sm:text-sm">
+              <span class="group inline-grid size-5 grid-cols-1 sm:size-4">
+                <input
+                  id="photo-review-remove"
+                  name="removeFromPhotostream"
+                  type="checkbox"
+                  class="col-start-1 row-start-1 appearance-none rounded-sm border border-white/15 bg-white/5 checked:border-rose-500 checked:bg-rose-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400 disabled:border-white/5 disabled:bg-white/10 disabled:checked:bg-white/10 forced-colors:appearance-auto"
+                />
+                <svg
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  class="size-7/8 group-not-has-checked:opacity-0 group-has-disabled:stroke-white/25 pointer-events-none col-start-1 row-start-1 self-center justify-self-center stroke-white"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M3 8L6 11L11 3.5"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"></path>
+                </svg>
+              </span>
+            </span>
+            <span class="min-w-0">
+              <span
+                class="block text-base font-medium text-rose-200 sm:text-sm"
+              >
+                Remove from photostream
+              </span>
+              <span class="mt-0.5 block text-base text-neutral-500 sm:text-sm">
+                No note is required. The original image stays intact and this
+                can be reversed in the manifest.
+              </span>
+            </span>
+          </label>
+
+          <p
+            id="photo-review-save-status"
+            class="mt-2 min-h-5 text-base text-neutral-500 sm:text-sm"
+            aria-live="polite"
+          >
+          </p>
+        </div>
+      </div>
+
+      <footer
+        class="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 p-3 sm:p-4"
+      >
+        <div class="flex gap-2">
+          <button
+            id="photo-review-previous"
+            type="button"
+            class="relative h-9 rounded-lg bg-white/10 py-2 pl-2 pr-3 text-sm font-medium text-neutral-200 ring-1 ring-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            ← Previous
+          </button>
+          <button
+            id="photo-review-next"
+            type="button"
+            class="relative h-9 rounded-lg bg-white/10 py-2 pl-3 pr-2 text-sm font-medium text-neutral-200 ring-1 ring-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            Next →
+          </button>
+        </div>
+        <button
+          id="photo-review-save-next"
+          type="button"
+          class="h-9 rounded-lg bg-sky-500 px-3 py-2 text-sm font-medium text-sky-950 ring-1 ring-sky-500 hover:bg-sky-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 disabled:cursor-wait disabled:opacity-60"
+        >
+          Save & next
+        </button>
+      </footer>
+    </section>
+  </div>
+</dialog>
+
+<style>
+  #photo-review-dialog::backdrop {
+    background: rgb(0 0 0 / 78%);
+    backdrop-filter: blur(10px);
+  }
+
+  .review-hover {
+    background: linear-gradient(
+      to top,
+      rgb(0 0 0 / 92%),
+      rgb(0 0 0 / 30%),
+      transparent
+    );
+  }
+
+  [data-photo-button][data-reviewed='true'] .reviewed-indicator {
+    display: inline;
+  }
+
+  @media (hover: none) {
+    .review-hover {
+      opacity: 1;
+    }
+
+    .review-hover > span:not(:first-child) {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+    }
+  }
+</style>
+
+<script>
+  type ReviewNote = {
+    note: string
+    reviewed: true
+    updatedAt: string
+    processedAt?: string
+  }
+
+  type NotesResponse = {
+    notes?: Record<string, ReviewNote>
+    error?: string
+  }
+
+  type ReviewResume = {
+    targetKey: string
+    search: string
+    collection: string
+    status: string
+    savedAt: number
+  }
+
+  const reviewResumeKey = 'photo-review:resume'
+  const reviewResumeMaxAge = 30_000
+
+  const app = document.querySelector<HTMLElement>('#photo-review-app')
+  const dialog = document.querySelector<HTMLDialogElement>(
+    '#photo-review-dialog',
+  )
+  const searchInput = document.querySelector<HTMLInputElement>(
+    '#photo-review-search',
+  )
+  const collectionSelect = document.querySelector<HTMLSelectElement>(
+    '#photo-review-collection',
+  )
+  const statusSelect = document.querySelector<HTMLSelectElement>(
+    '#photo-review-status',
+  )
+  const totalCount = document.querySelector<HTMLElement>('#photo-total-count')
+  const incompleteCount =
+    document.querySelector<HTMLElement>('#incomplete-count')
+  const visibleCount = document.querySelector<HTMLElement>('#visible-count')
+  const reviewedCount = document.querySelector<HTMLElement>('#reviewed-count')
+  const emptyState = document.querySelector<HTMLElement>('#photo-review-empty')
+  const dialogImage = document.querySelector<HTMLImageElement>(
+    '#photo-review-dialog-image',
+  )
+  const dialogPosition = document.querySelector<HTMLElement>(
+    '#photo-review-dialog-position',
+  )
+  const dialogCollection = document.querySelector<HTMLElement>(
+    '#photo-review-dialog-collection',
+  )
+  const dialogTitle = document.querySelector<HTMLElement>(
+    '#photo-review-dialog-title',
+  )
+  const dateValue = document.querySelector<HTMLElement>('#photo-review-date')
+  const cameraValue = document.querySelector<HTMLElement>(
+    '#photo-review-camera',
+  )
+  const lensValue = document.querySelector<HTMLElement>('#photo-review-lens')
+  const locationValue = document.querySelector<HTMLElement>(
+    '#photo-review-location',
+  )
+  const gpsValue = document.querySelector<HTMLElement>('#photo-review-gps')
+  const missingList = document.querySelector<HTMLUListElement>(
+    '#photo-review-missing',
+  )
+  const locationInput = document.querySelector<HTMLInputElement>(
+    '#photo-review-location-input',
+  )
+  const locationOptions = document.querySelector<HTMLDataListElement>(
+    '#photo-review-location-options',
+  )
+  const cameraInput = document.querySelector<HTMLInputElement>(
+    '#photo-review-camera-input',
+  )
+  const cameraOptions = document.querySelector<HTMLDataListElement>(
+    '#photo-review-camera-options',
+  )
+  const publicNoteInput = document.querySelector<HTMLTextAreaElement>(
+    '#photo-review-public-note',
+  )
+  const noteInput =
+    document.querySelector<HTMLTextAreaElement>('#photo-review-note')
+  const removeInput = document.querySelector<HTMLInputElement>(
+    '#photo-review-remove',
+  )
+  const saveStatus = document.querySelector<HTMLElement>(
+    '#photo-review-save-status',
+  )
+  const closeButton = document.querySelector<HTMLButtonElement>(
+    '#photo-review-close',
+  )
+  const previousButton = document.querySelector<HTMLButtonElement>(
+    '#photo-review-previous',
+  )
+  const nextButton =
+    document.querySelector<HTMLButtonElement>('#photo-review-next')
+  const saveNextButton = document.querySelector<HTMLButtonElement>(
+    '#photo-review-save-next',
+  )
+
+  const photoButtons = Array.from(
+    document.querySelectorAll<HTMLButtonElement>('[data-photo-button]'),
+  )
+  const state = {
+    notes: {} as Record<string, ReviewNote>,
+    current: null as HTMLButtonElement | null,
+    dirty: false,
+    saving: false,
+  }
+  let resumeCleanupTimer: number | undefined
+
+  function clearReviewResume() {
+    if (resumeCleanupTimer !== undefined) {
+      window.clearTimeout(resumeCleanupTimer)
+      resumeCleanupTimer = undefined
+    }
+    try {
+      window.sessionStorage.removeItem(reviewResumeKey)
+    } catch {
+      // The review workflow still works when storage is unavailable.
+    }
+  }
+
+  function rememberReviewResume(target: HTMLButtonElement) {
+    const targetKey = target.dataset.photoKey
+    if (!targetKey) return
+
+    const resume: ReviewResume = {
+      targetKey,
+      search: searchInput?.value ?? '',
+      collection: collectionSelect?.value ?? '',
+      status: statusSelect?.value ?? 'incomplete',
+      savedAt: Date.now(),
+    }
+
+    try {
+      window.sessionStorage.setItem(reviewResumeKey, JSON.stringify(resume))
+    } catch {
+      // The save itself should not fail when storage is unavailable.
+    }
+  }
+
+  function consumeReviewResume() {
+    try {
+      const rawResume = window.sessionStorage.getItem(reviewResumeKey)
+      window.sessionStorage.removeItem(reviewResumeKey)
+      if (!rawResume) return null
+
+      const resume = JSON.parse(rawResume) as Partial<ReviewResume>
+      if (
+        typeof resume.targetKey !== 'string' ||
+        typeof resume.search !== 'string' ||
+        typeof resume.collection !== 'string' ||
+        typeof resume.status !== 'string' ||
+        typeof resume.savedAt !== 'number' ||
+        Date.now() - resume.savedAt > reviewResumeMaxAge
+      ) {
+        return null
+      }
+
+      return resume as ReviewResume
+    } catch {
+      return null
+    }
+  }
+
+  function scheduleReviewResumeCleanup() {
+    if (resumeCleanupTimer !== undefined) {
+      window.clearTimeout(resumeCleanupTimer)
+    }
+    resumeCleanupTimer = window.setTimeout(clearReviewResume, 5_000)
+  }
+
+  function formatDate(value: string) {
+    if (!value) return ''
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return value
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(date)
+  }
+
+  function metadataMissing(button: HTMLButtonElement) {
+    const missing: string[] = []
+    if (!button.dataset.capturedAt) missing.push('Capture date')
+    if (!button.dataset.camera) missing.push('Camera')
+    if (button.dataset.explicitLocation !== 'true') {
+      missing.push(
+        button.dataset.latitude && button.dataset.longitude
+          ? 'Location label · GPS available'
+          : 'Location',
+      )
+    }
+    return missing
+  }
+
+  function updateButtonSearch(button: HTMLButtonElement) {
+    button.dataset.search = [
+      button.dataset.photoKey,
+      button.dataset.collection,
+      button.dataset.location,
+      button.dataset.camera,
+      button.dataset.lens,
+      button.dataset.publicNote,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLocaleLowerCase()
+  }
+
+  function updateTileMetadata(button: HTMLButtonElement) {
+    const missing = metadataMissing(button)
+    button.dataset.missingCount = String(missing.length)
+    const summary = button.querySelector<HTMLElement>('.review-missing-summary')
+    const detail = button.querySelector<HTMLElement>('.review-missing-detail')
+    if (summary) {
+      summary.textContent = missing.length
+        ? `${missing.length} ${missing.length === 1 ? 'field' : 'fields'} incomplete`
+        : 'Core metadata complete'
+    }
+    if (detail) {
+      detail.textContent = missing.length
+        ? missing.join(' · ')
+        : button.dataset.location || button.dataset.collection || ''
+    }
+    button.setAttribute(
+      'aria-label',
+      `Review ${button.dataset.photoKey ?? 'photo'}. ${missing.length ? `Missing ${missing.join(', ')}` : 'Core metadata complete'}.`,
+    )
+  }
+
+  function ensureLocationOption(location: string) {
+    if (!location || !locationOptions) return
+    const exists = Array.from(locationOptions.options).some(
+      (option) => option.value === location,
+    )
+    if (exists) return
+    const option = document.createElement('option')
+    option.value = location
+    locationOptions.append(option)
+  }
+
+  function ensureCameraOption(camera: string) {
+    if (!camera || !cameraOptions) return
+    const exists = Array.from(cameraOptions.options).some(
+      (option) => option.value === camera,
+    )
+    if (exists) return
+    const option = document.createElement('option')
+    option.value = camera
+    cameraOptions.append(option)
+  }
+
+  function setMetadataValue(
+    element: HTMLElement,
+    value: string,
+    fallback = 'Missing',
+  ) {
+    element.textContent = value || fallback
+    element.classList.toggle('text-rose-300', !value)
+    element.classList.toggle('text-neutral-200', Boolean(value))
+  }
+
+  function updateReviewedState(button: HTMLButtonElement) {
+    const key = button.dataset.photoKey ?? ''
+    button.dataset.reviewed = String(Boolean(state.notes[key]))
+  }
+
+  function updateCounts() {
+    const activeButtons = photoButtons.filter(
+      (button) => button.dataset.removed !== 'true',
+    )
+    if (totalCount) totalCount.textContent = String(activeButtons.length)
+    if (incompleteCount) {
+      incompleteCount.textContent = String(
+        activeButtons.filter((button) => metadataMissing(button).length > 0)
+          .length,
+      )
+    }
+    if (reviewedCount) {
+      reviewedCount.textContent = String(
+        activeButtons.filter((button) =>
+          Boolean(state.notes[button.dataset.photoKey ?? '']),
+        ).length,
+      )
+    }
+  }
+
+  function applyFilters() {
+    const query = searchInput?.value.trim().toLocaleLowerCase() ?? ''
+    const collection = collectionSelect?.value ?? ''
+    const status = statusSelect?.value ?? 'incomplete'
+    let shown = 0
+
+    for (const button of photoButtons) {
+      const item = button.closest<HTMLElement>('[data-photo-item]')
+      if (!item) continue
+      if (button.dataset.removed === 'true') {
+        item.hidden = true
+        continue
+      }
+
+      const reviewed = button.dataset.reviewed === 'true'
+      const incomplete = Number(button.dataset.missingCount ?? 0) > 0
+      const matchesStatus =
+        status === 'all' ||
+        (status === 'incomplete' && incomplete) ||
+        (status === 'complete' && !incomplete) ||
+        (status === 'reviewed' && reviewed) ||
+        (status === 'unreviewed' && !reviewed)
+      const matches =
+        matchesStatus &&
+        (!collection || button.dataset.collection === collection) &&
+        (!query || button.dataset.search?.includes(query))
+
+      item.hidden = !matches
+      if (matches) shown += 1
+    }
+
+    if (visibleCount) visibleCount.textContent = String(shown)
+    emptyState?.classList.toggle('hidden', shown !== 0)
+  }
+
+  function visibleButtons() {
+    return photoButtons.filter((button) => {
+      const item = button.closest<HTMLElement>('[data-photo-item]')
+      return item && !item.hidden && button.dataset.removed !== 'true'
+    })
+  }
+
+  function adjacentButton(direction: -1 | 1) {
+    if (!state.current) return null
+    const visible = visibleButtons()
+    const index = visible.indexOf(state.current)
+    return index < 0 ? null : (visible[index + direction] ?? null)
+  }
+
+  function renderDialog(button: HTMLButtonElement) {
+    const key = button.dataset.photoKey ?? ''
+    const activeButtons = photoButtons.filter(
+      (photoButton) => photoButton.dataset.removed !== 'true',
+    )
+    const index = activeButtons.indexOf(button)
+    const missing = metadataMissing(button)
+    const latitude = button.dataset.latitude ?? ''
+    const longitude = button.dataset.longitude ?? ''
+
+    state.current = button
+    state.dirty = false
+    if (dialogImage) {
+      dialogImage.src =
+        button.dataset.fullSrc || button.dataset.previewSrc || ''
+    }
+    if (dialogPosition)
+      dialogPosition.textContent = `${index + 1} / ${activeButtons.length}`
+    if (dialogCollection)
+      dialogCollection.textContent = button.dataset.collection ?? ''
+    if (dialogTitle) dialogTitle.textContent = key
+    if (dateValue)
+      setMetadataValue(dateValue, formatDate(button.dataset.capturedAt ?? ''))
+    if (cameraValue) setMetadataValue(cameraValue, button.dataset.camera ?? '')
+    if (lensValue) {
+      setMetadataValue(
+        lensValue,
+        button.dataset.lens || 'Not available · optional',
+      )
+    }
+    if (locationValue) {
+      const location = button.dataset.location ?? ''
+      const explicit = button.dataset.explicitLocation === 'true'
+      setMetadataValue(
+        locationValue,
+        explicit ? location : `${location} · collection fallback`,
+      )
+      locationValue.classList.toggle('text-amber-200', !explicit)
+      locationValue.classList.toggle('text-neutral-200', explicit)
+    }
+    if (gpsValue) {
+      setMetadataValue(
+        gpsValue,
+        latitude && longitude ? `${latitude}, ${longitude}` : '',
+        'Not available',
+      )
+    }
+
+    if (missingList) {
+      missingList.replaceChildren()
+      const labels = missing.length ? missing : ['Core metadata complete']
+      for (const label of labels) {
+        const item = document.createElement('li')
+        item.className = missing.length
+          ? 'rounded-full bg-amber-400/10 px-2 py-1 text-sm text-amber-200 ring-1 ring-amber-300/20'
+          : 'rounded-full bg-emerald-400/10 px-2 py-1 text-sm text-emerald-200 ring-1 ring-emerald-300/20'
+        item.textContent = label
+        missingList.append(item)
+      }
+    }
+
+    if (locationInput) {
+      locationInput.value =
+        button.dataset.explicitLocation === 'true'
+          ? (button.dataset.location ?? '')
+          : ''
+    }
+    if (cameraInput) cameraInput.value = button.dataset.camera ?? ''
+    if (publicNoteInput) publicNoteInput.value = button.dataset.publicNote ?? ''
+    if (noteInput) noteInput.value = state.notes[key]?.note ?? ''
+    if (removeInput) removeInput.checked = button.dataset.removed === 'true'
+    if (saveStatus) {
+      saveStatus.classList.remove('text-rose-300')
+      const entry = state.notes[key]
+      saveStatus.textContent = entry
+        ? `Saved ${new Date(entry.updatedAt).toLocaleString()}`
+        : 'Not reviewed yet'
+    }
+    if (previousButton) previousButton.disabled = !adjacentButton(-1)
+    if (nextButton) nextButton.disabled = !adjacentButton(1)
+    if (saveNextButton)
+      saveNextButton.textContent = adjacentButton(1)
+        ? 'Save & next'
+        : 'Save changes'
+  }
+
+  function openPhoto(button: HTMLButtonElement) {
+    renderDialog(button)
+    if (dialog && !dialog.open) dialog.showModal()
+    app?.setAttribute('inert', '')
+    if (window.matchMedia('(min-width: 768px)').matches) {
+      window.setTimeout(() => publicNoteInput?.focus(), 0)
+    }
+  }
+
+  async function saveCurrent() {
+    if (
+      !state.current ||
+      !locationInput ||
+      !cameraInput ||
+      !publicNoteInput ||
+      !noteInput ||
+      !removeInput ||
+      state.saving
+    )
+      return false
+    const key = state.current.dataset.photoKey ?? ''
+    state.saving = true
+    if (saveNextButton) saveNextButton.disabled = true
+    if (saveStatus) saveStatus.textContent = 'Saving locally…'
+
+    try {
+      const response = await fetch('/api/photo-review-notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          photoKey: key,
+          location: locationInput.value,
+          camera: cameraInput.value,
+          publicNote: publicNoteInput.value,
+          note: noteInput.value,
+          hidden: removeInput.checked,
+        }),
+      })
+      const result = (await response.json()) as {
+        entry?: ReviewNote
+        location?: string
+        camera?: string
+        publicNote?: string
+        hidden?: boolean
+        error?: string
+      }
+      if (!response.ok || !result.entry) {
+        throw new Error(result.error || 'Unable to save note')
+      }
+
+      state.notes[key] = result.entry
+      const savedLocation = result.location?.trim() ?? ''
+      state.current.dataset.location =
+        savedLocation || state.current.dataset.collection || ''
+      state.current.dataset.explicitLocation = String(Boolean(savedLocation))
+      const savedCamera = result.camera?.trim() ?? ''
+      state.current.dataset.camera = savedCamera
+      state.current.dataset.publicNote = result.publicNote ?? ''
+      state.current.dataset.removed = String(Boolean(result.hidden))
+      locationInput.value = savedLocation
+      cameraInput.value = savedCamera
+      ensureLocationOption(savedLocation)
+      ensureCameraOption(savedCamera)
+      updateButtonSearch(state.current)
+      updateTileMetadata(state.current)
+      if (locationValue) {
+        setMetadataValue(
+          locationValue,
+          savedLocation ||
+            `${state.current.dataset.collection ?? ''} · collection fallback`,
+        )
+        locationValue.classList.toggle('text-amber-200', !savedLocation)
+        locationValue.classList.toggle(
+          'text-neutral-200',
+          Boolean(savedLocation),
+        )
+      }
+      if (cameraValue) setMetadataValue(cameraValue, savedCamera)
+      state.dirty = false
+      updateReviewedState(state.current)
+      updateCounts()
+      applyFilters()
+      if (saveStatus) {
+        saveStatus.textContent = result.hidden
+          ? 'Removed from photostream'
+          : 'Saved locally'
+      }
+      return true
+    } catch (error) {
+      if (saveStatus) {
+        saveStatus.textContent =
+          error instanceof Error ? error.message : 'Unable to save note'
+        saveStatus.classList.add('text-rose-300')
+      }
+      return false
+    } finally {
+      state.saving = false
+      if (saveNextButton) saveNextButton.disabled = false
+    }
+  }
+
+  async function move(direction: -1 | 1, alwaysSave = false) {
+    const target = adjacentButton(direction)
+    if (!target) {
+      if (alwaysSave || state.dirty) await saveCurrent()
+      return
+    }
+    const shouldSave = alwaysSave || state.dirty
+    if (shouldSave) {
+      rememberReviewResume(target)
+      if (!(await saveCurrent())) {
+        clearReviewResume()
+        return
+      }
+    }
+    applyFilters()
+    renderDialog(target)
+    if (shouldSave) scheduleReviewResumeCleanup()
+    if (window.matchMedia('(min-width: 768px)').matches)
+      publicNoteInput?.focus()
+  }
+
+  async function closeDialog() {
+    if (state.dirty && !(await saveCurrent())) return
+    dialog?.close()
+  }
+
+  for (const button of photoButtons) {
+    button.addEventListener('click', () => openPhoto(button))
+  }
+  searchInput?.addEventListener('input', applyFilters)
+  collectionSelect?.addEventListener('change', applyFilters)
+  statusSelect?.addEventListener('change', applyFilters)
+  function markDirty() {
+    state.dirty = true
+    saveStatus?.classList.remove('text-rose-300')
+    if (saveStatus) saveStatus.textContent = 'Unsaved changes'
+  }
+
+  locationInput?.addEventListener('input', markDirty)
+  cameraInput?.addEventListener('input', markDirty)
+  publicNoteInput?.addEventListener('input', markDirty)
+  noteInput?.addEventListener('input', markDirty)
+  removeInput?.addEventListener('change', markDirty)
+  closeButton?.addEventListener('click', closeDialog)
+  previousButton?.addEventListener('click', () => move(-1))
+  nextButton?.addEventListener('click', () => move(1))
+  saveNextButton?.addEventListener('click', () => move(1, true))
+  dialog?.addEventListener('cancel', (event) => {
+    event.preventDefault()
+    void closeDialog()
+  })
+  dialog?.addEventListener('close', () => {
+    app?.removeAttribute('inert')
+    if (dialogImage) dialogImage.src = ''
+    state.current?.focus()
+    state.current = null
+    applyFilters()
+  })
+  document.addEventListener('keydown', (event) => {
+    if (!dialog?.open) return
+    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+      event.preventDefault()
+      void saveCurrent()
+      return
+    }
+    if (
+      event.target === locationInput ||
+      event.target === cameraInput ||
+      event.target === publicNoteInput ||
+      event.target === noteInput ||
+      event.target === removeInput
+    )
+      return
+    if (event.key === 'ArrowLeft') void move(-1)
+    if (event.key === 'ArrowRight') void move(1)
+  })
+
+  async function loadNotes() {
+    try {
+      const response = await fetch('/api/photo-review-notes', {
+        cache: 'no-store',
+      })
+      const result = (await response.json()) as NotesResponse
+      if (!response.ok) throw new Error(result.error || 'Unable to load notes')
+      state.notes = result.notes ?? {}
+      for (const button of photoButtons) updateReviewedState(button)
+      updateCounts()
+
+      const resume = consumeReviewResume()
+      if (resume) {
+        if (searchInput) searchInput.value = resume.search
+        if (
+          collectionSelect &&
+          Array.from(collectionSelect.options).some(
+            (option) => option.value === resume.collection,
+          )
+        ) {
+          collectionSelect.value = resume.collection
+        }
+        if (
+          statusSelect &&
+          Array.from(statusSelect.options).some(
+            (option) => option.value === resume.status,
+          )
+        ) {
+          statusSelect.value = resume.status
+        }
+      }
+
+      applyFilters()
+      if (resume) {
+        const target = photoButtons.find(
+          (button) =>
+            button.dataset.photoKey === resume.targetKey &&
+            button.dataset.removed !== 'true',
+        )
+        if (target) openPhoto(target)
+      }
+    } catch (error) {
+      console.error(error)
+      if (reviewedCount) reviewedCount.textContent = '—'
+    }
+  }
+
+  void loadNotes()
+</script>

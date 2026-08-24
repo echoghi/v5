@@ -8,11 +8,12 @@ export const SITE = {
   DESCRIPTION:
     'Emile Choghi is a software engineer who specializes in building useful digital experiences.',
   NUM_POSTS_ON_HOMEPAGE: 3,
-  POSTS_PER_PAGE: 3,
+  POSTS_PER_PAGE: 5,
 } as const
 
 export const NAV_LINKS: Link[] = [
   { href: '/', label: 'home' },
+  { href: '/posts', label: 'posts' },
   { href: '/photos', label: 'photos' },
 ]
 

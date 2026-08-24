@@ -1,0 +1,48 @@
+---
+import Icon from '@/components/Icon.astro'
+---
+
+<div class="fixed bottom-3 left-3 z-[110] sm:bottom-5 sm:left-5">
+  <button
+    type="button"
+    class="paper-glass relative flex h-10 cursor-pointer items-center gap-2 rounded-full px-3 font-sans text-sm font-medium text-foreground transition-transform duration-200 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] motion-reduce:transition-none dark:shadow-none"
+    aria-label="Toggle color theme"
+    title="Toggle color theme"
+    data-dev-theme-toggle
+  >
+    <Icon name="lucide:moon" class="size-4 dark:hidden" stroke-width="1.8" />
+    <Icon
+      name="lucide:sun"
+      class="hidden size-4 dark:block"
+      stroke-width="1.8"
+    />
+    <span class="dark:hidden">Dark</span>
+    <span class="hidden dark:inline">Light</span>
+    <span
+      class="pointer-fine:hidden absolute left-1/2 top-1/2 size-[max(100%,3rem)] -translate-x-1/2 -translate-y-1/2"
+      aria-hidden="true"></span>
+  </button>
+</div>
+
+<script is:inline>
+  ;(() => {
+    const button = document.querySelector('[data-dev-theme-toggle]')
+    if (!(button instanceof HTMLButtonElement)) return
+
+    button.addEventListener('click', () => {
+      const root = document.documentElement
+      const nextIsDark = !root.classList.contains('dark')
+
+      root.classList.add('disable-transitions')
+      root.classList.toggle('dark', nextIsDark)
+
+      try {
+        localStorage.setItem('theme', nextIsDark ? 'dark' : 'theme-light')
+      } catch {
+        // The class still provides a session-level override if storage is blocked.
+      }
+
+      requestAnimationFrame(() => root.classList.remove('disable-transitions'))
+    })
+  })()
+</script>

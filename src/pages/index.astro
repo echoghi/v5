@@ -1,69 +1,74 @@
 ---
-import BlogCard from '@/components/BlogCard.astro'
 import Container from '@/components/Container.astro'
+import HomePostCard from '@/components/HomePostCard.astro'
+import Icon from '@/components/Icon.astro'
 import Link from '@/components/Link.astro'
-import { buttonVariants } from '@/components/ui/button'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import Layout from '@/layouts/Layout.astro'
 import { SITE } from '@/site.config'
 import { getCollection } from 'astro:content'
 
-const blog = (await getCollection('blog'))
+const allPosts = (await getCollection('blog'))
   .filter((post) => !post.data.draft)
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
-  .slice(0, SITE.NUM_POSTS_ON_HOMEPAGE)
+const latestPosts = allPosts.slice(0, SITE.NUM_POSTS_ON_HOMEPAGE)
 ---
 
 <Layout title="Home" description={SITE.DESCRIPTION}>
-  <Container class="flex flex-col gap-y-6">
-    <section>
-      <Card className="bg-transparent">
-        <CardHeader className="pb-4">
-          <h1 class="text-2xl font-semibold tracking-tight">Hey, I'm Emile.</h1>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p class="text-sm text-primary">
-            I’m a software engineer who enjoys designing and building useful
-            things for the web. Currently, I’m focused on creating SaaS
-            products, websites, brands, directories, and whatever else I find
-            interesting at{' '}
-            <Link
-              href="https://rennalabs.xyz/"
-              class="text-foreground"
-              external
-              underline>Renna Labs</Link
-            >.
-          </p>
-          <p class="text-sm text-primary">
-            This is my small corner of the web — a hypertext garden where I
-            share thoughts on software, life, and whatever else drifts through
-            my stream of consciousness.
-          </p>
-        </CardContent>
-      </Card>
+  <Container class="flex flex-col gap-12 sm:gap-16">
+    <section class="flex flex-col gap-5 pb-2 pt-8 sm:pt-12">
+      <h1
+        class="max-w-[20ch] text-balance font-sans text-5xl font-semibold tracking-tight sm:text-6xl"
+      >
+        Hey, I’m Emile.
+      </h1>
+      <div class="flex flex-col gap-4 font-editorial">
+        <p class="text-pretty text-lg text-primary">
+          I’m a software engineer who enjoys designing and building useful
+          things for the web. Currently, I’m focused on creating SaaS products,
+          websites, brands, directories, and whatever else I find interesting at{
+            ' '
+          }
+          <Link
+            href="https://rennalabs.xyz/"
+            class="text-foreground"
+            external
+            underline>Renna Labs</Link
+          >.
+        </p>
+        <p class="text-pretty text-lg text-muted-foreground">
+          This is my small corner of the web. It’s a hypertext garden where I
+          share thoughts on software, life, and whatever else drifts through my
+          stream of consciousness.
+        </p>
+      </div>
     </section>
-    <section class="flex flex-col gap-y-4">
-      <h2 class="text-2xl font-bold">Latest posts</h2>
-      <ul class="not-prose flex flex-col gap-y-4">
+    <section
+      class="overflow-hidden rounded-2xl border border-foreground/10 bg-background/30"
+    >
+      <div
+        class="flex items-center justify-between gap-4 px-4 pb-2 pt-4 sm:px-5 sm:pt-5"
+      >
+        <h2 class="font-sans text-2xl font-semibold">Posts</h2>
+        <Link
+          href="/posts"
+          class="group flex shrink-0 items-center gap-1.5 font-sans text-base font-medium text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm"
+        >
+          <span>{latestPosts.length} of {allPosts.length} posts</span>
+          <Icon
+            name="lucide:chevron-right"
+            class="size-4 transition-transform group-hover:translate-x-0.5"
+          />
+        </Link>
+      </div>
+      <ul class="not-prose flex flex-col px-1 pb-1" role="list">
         {
-          blog.map((post) => (
+          latestPosts.map((post) => (
             <li>
-              <BlogCard entry={post} />
+              <HomePostCard entry={post} />
             </li>
           ))
         }
       </ul>
-      <div class="flex justify-center">
-        <Link
-          href="/blog"
-          class={buttonVariants({ variant: 'ghost' }) + ' group'}
-        >
-          See all posts <span
-            class="ml-1.5 transition-transform group-hover:translate-x-1"
-            >&rarr;</span
-          >
-        </Link>
-      </div>
     </section>
   </Container>
 </Layout>

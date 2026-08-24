@@ -3,7 +3,6 @@ import BlogCard from '@/components/BlogCard.astro'
 import Breadcrumbs from '@/components/Breadcrumbs.astro'
 import Container from '@/components/Container.astro'
 import Layout from '@/layouts/Layout.astro'
-import Icon from '@/components/Icon.astro'
 import { type CollectionEntry, getCollection } from 'astro:content'
 
 type BlogPost = CollectionEntry<'blog'>
@@ -36,35 +35,35 @@ export async function getStaticPaths() {
   title={`Posts tagged with "${tag}"`}
   description={`A collection of posts tagged with ${tag}.`}
 >
-  <Container class="flex flex-col gap-y-6">
+  <Container class="flex flex-col gap-10">
     <Breadcrumbs
       items={[
         { href: '/tags', label: 'Tags', icon: 'lucide:tags' },
         { label: tag, icon: 'lucide:tag' },
       ]}
     />
-    <div class="flex flex-wrap items-center gap-2">
-      <h1 class="text-3xl font-semibold">Posts tagged with</h1>
-      <span
-        class="flex items-center gap-x-1 rounded-sm bg-secondary px-4 py-2 text-2xl font-semibold"
+    <section class="flex flex-col gap-3 border-b border-foreground/10 pb-10">
+      <p class="font-sans text-sm text-muted-foreground">
+        {posts.length}
+        {posts.length === 1 ? 'entry' : 'entries'} in the archive
+      </p>
+      <h1
+        class="text-balance text-5xl font-semibold tracking-tight sm:text-6xl"
       >
-        <Icon name="lucide:hash" class="size-6 -translate-x-0.5" />{tag}
-      </span>
-    </div>
-    <div class="flex flex-col gap-y-4">
+        <span class="text-muted-foreground">Tagged</span> #{tag}
+      </h1>
+    </section>
+    <ul
+      class="not-prose flex flex-col divide-y divide-foreground/10"
+      role="list"
+    >
       {
         posts.map((post) => (
-          <section class="flex flex-col gap-y-4">
-            <div>
-              <ul class="not-prose flex flex-col gap-4">
-                <li>
-                  <BlogCard entry={post} />
-                </li>
-              </ul>
-            </div>
-          </section>
+          <li>
+            <BlogCard entry={post} />
+          </li>
         ))
       }
-    </div>
+    </ul>
   </Container>
 </Layout>

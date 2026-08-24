@@ -1,6 +1,137 @@
+@import '@fontsource-variable/figtree/wght.css';
+@import '@fontsource-variable/figtree/wght-italic.css';
+@import '@fontsource/instrument-serif/400.css';
+@import '@fontsource-variable/source-serif-4/wght.css';
+@import '@fontsource-variable/source-serif-4/wght-italic.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+html.photostream-document {
+  background: #000;
+  color-scheme: dark;
+  scrollbar-color: rgb(255 255 255 / 24%) #000;
+}
+
+html.photostream-document::before {
+  display: none;
+}
+
+body.photostream-page {
+  min-width: 320px;
+  margin: 0;
+  overflow-x: hidden;
+  background: #000;
+  color: #fff;
+}
+
+html.photostream-locked,
+body.photostream-locked {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.liquid-glass {
+  --liquid-glass-tint: 0.28;
+
+  border: 0;
+  background:
+    linear-gradient(
+      135deg,
+      rgb(255 255 255 / 14%),
+      rgb(255 255 255 / 4%) 34%,
+      transparent 55%,
+      rgb(255 255 255 / 7%)
+    ),
+    rgb(0 0 0 / var(--liquid-glass-tint));
+  box-shadow:
+    inset 1px 1px 1px -0.5px rgb(255 255 255 / 40%),
+    inset -1px -1px 1px -0.5px rgb(255 255 255 / 12%),
+    inset 0 0 0 1px rgb(255 255 255 / 8%),
+    0 4px 14px -6px rgb(0 0 0 / 50%);
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  backdrop-filter: blur(14px) saturate(1.5);
+}
+
+.liquid-glass-adaptive {
+  background:
+    linear-gradient(
+      135deg,
+      rgb(255 255 255 / 58%),
+      rgb(255 255 255 / 16%) 34%,
+      transparent 55%,
+      oklch(var(--foreground) / 0.035)
+    ),
+    oklch(var(--background) / 0.58);
+  box-shadow:
+    inset 1px 1px 1px -0.5px rgb(255 255 255 / 78%),
+    inset -1px -1px 1px -0.5px oklch(var(--foreground) / 0.1),
+    inset 0 0 0 1px oklch(var(--foreground) / 0.06),
+    0 4px 14px -6px oklch(var(--foreground) / 0.18);
+}
+
+.dark .liquid-glass-adaptive {
+  background:
+    linear-gradient(
+      135deg,
+      rgb(255 255 255 / 14%),
+      rgb(255 255 255 / 4%) 34%,
+      transparent 55%,
+      rgb(255 255 255 / 7%)
+    ),
+    rgb(0 0 0 / var(--liquid-glass-tint));
+  box-shadow:
+    inset 1px 1px 1px -0.5px rgb(255 255 255 / 40%),
+    inset -1px -1px 1px -0.5px rgb(255 255 255 / 12%),
+    inset 0 0 0 1px rgb(255 255 255 / 8%),
+    0 4px 14px -6px rgb(0 0 0 / 50%);
+}
+
+.paper-glass {
+  border: 1px solid oklch(var(--foreground) / 0.08);
+  background:
+    linear-gradient(
+      135deg,
+      oklch(var(--background) / 0.92),
+      oklch(var(--background) / 0.68) 48%,
+      oklch(var(--secondary) / 0.34)
+    ),
+    oklch(var(--background) / 0.7);
+  box-shadow:
+    inset 1px 1px 0 oklch(var(--background) / 0.9),
+    inset -1px -1px 0 oklch(var(--foreground) / 0.035),
+    0 12px 32px -24px oklch(var(--foreground) / 0.42);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  backdrop-filter: blur(18px) saturate(1.35);
+}
+
+.site-header-surface {
+  max-width: 48rem;
+  transition: box-shadow 360ms ease;
+}
+
+#main-header[data-scrolled='true'] .site-header-surface {
+  box-shadow:
+    inset 1px 1px 1px -0.5px rgb(255 255 255 / 82%),
+    inset -1px -1px 1px -0.5px oklch(var(--foreground) / 0.12),
+    inset 0 0 0 1px oklch(var(--foreground) / 0.07),
+    0 18px 42px -24px oklch(var(--foreground) / 0.42);
+}
+
+.dark #main-header[data-scrolled='true'] .site-header-surface {
+  box-shadow:
+    inset 1px 1px 1px -0.5px rgb(255 255 255 / 42%),
+    inset -1px -1px 1px -0.5px rgb(255 255 255 / 14%),
+    inset 0 0 0 1px rgb(255 255 255 / 9%),
+    0 18px 42px -24px rgb(0 0 0 / 66%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-header-surface {
+    transition: none;
+  }
+}
 
 @font-face {
   font-family: 'Geist';
@@ -20,6 +151,7 @@
 
 @layer base {
   :root {
+    --font-editorial: 'Source Serif 4 Variable';
     --flexoki-black: 16.96% 0.002 17.32;
     --flexoki-black-rgb: 22.28% 0.002 67.7;
     --flexoki-paper: 99.01% 0.016 95.22;
@@ -238,6 +370,10 @@
     }
   }
 
+  body {
+    @apply selection:bg-secondary selection:text-foreground;
+  }
+
   .disable-transitions,
   .disable-transitions * {
     @apply !transition-none;
@@ -246,7 +382,7 @@
 
 @layer components {
   article {
-    @apply prose-headings:scroll-mt-20 prose-headings:break-words first:prose-headings:mt-0 prose-p:break-words prose-a:!break-words prose-a:!decoration-muted-foreground prose-a:underline-offset-[3px] prose-a:transition-colors hover:prose-a:!decoration-foreground prose-pre:!px-0 prose-img:mx-auto;
+    @apply prose-headings:scroll-mt-24 prose-headings:break-words prose-headings:font-semibold prose-headings:tracking-tight first:prose-headings:mt-0 prose-p:break-words prose-p:leading-8 prose-a:!break-words prose-a:!decoration-muted-foreground prose-a:underline-offset-[3px] hover:prose-a:!decoration-foreground prose-blockquote:rounded-r-xl prose-blockquote:border-l-2 prose-blockquote:bg-secondary/20 prose-blockquote:py-1 prose-blockquote:pr-5 prose-pre:!px-0 prose-img:mx-auto prose-img:rounded-[min(1.4vw,1rem)];
 
     .katex-display {
       @apply overflow-x-auto overflow-y-hidden py-4;
@@ -347,6 +483,18 @@
           }
         }
       }
+    }
+  }
+
+  .post-prose > :is(p, figure):has(> img:only-child) {
+    width: min(50rem, calc(100vw - 2rem));
+    max-width: none;
+    margin-left: 50%;
+    transform: translateX(-50%);
+
+    > img {
+      width: 100%;
+      height: auto;
     }
   }
 }

@@ -1,0 +1,25 @@
+---
+export const prerender = false
+
+import PhotoReviewGallery from '@/components/PhotoReviewGallery.astro'
+import PhotoReviewLayout from '@/layouts/PhotoReviewLayout.astro'
+import { getPhotostreamImages } from '@/lib/server-utils'
+import { getCollection } from 'astro:content'
+
+if (!import.meta.env.DEV) return Astro.redirect('/photos', 302)
+
+const photoCollections = await getCollection('photos')
+const sortedPhotoCollections = photoCollections.sort((a, b) => {
+  const dateA = a.data.date ? new Date(a.data.date).getTime() : 0
+  const dateB = b.data.date ? new Date(b.data.date).getTime() : 0
+  return dateB - dateA
+})
+const images = await getPhotostreamImages(sortedPhotoCollections)
+---
+
+<PhotoReviewLayout
+  title="Photo metadata review"
+  description="A local-only workspace for reviewing photo metadata."
+>
+  <PhotoReviewGallery images={images} />
+</PhotoReviewLayout>

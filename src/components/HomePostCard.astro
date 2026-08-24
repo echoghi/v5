@@ -1,0 +1,41 @@
+---
+import Link from '@/components/Link.astro'
+import { Image } from 'astro:assets'
+import type { CollectionEntry } from 'astro:content'
+
+type Props = {
+  entry: CollectionEntry<'blog'>
+}
+
+const { entry } = Astro.props
+---
+
+<article class="not-prose group">
+  <Link
+    href={`/posts/${entry.id}`}
+    class="grid cursor-pointer gap-4 rounded-xl p-4 hover:bg-secondary/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[12rem_minmax(0,1fr)] sm:items-start sm:gap-5"
+  >
+    {
+      entry.data.image && (
+        <div class="self-start overflow-hidden rounded-[min(1.2vw,0.75rem)] bg-secondary/20 outline outline-1 -outline-offset-1 outline-foreground/5">
+          <Image
+            src={entry.data.image}
+            alt=""
+            class="h-auto w-full"
+            loading="lazy"
+          />
+        </div>
+      )
+    }
+    <div class="min-w-0 py-0.5">
+      <div class="flex min-w-0 flex-col gap-1">
+        <h3 class="text-balance font-sans text-xl font-semibold">
+          {entry.data.title}
+        </h3>
+        <p class="text-pretty text-base text-muted-foreground">
+          {entry.data.previewDescription}
+        </p>
+      </div>
+    </div>
+  </Link>
+</article>

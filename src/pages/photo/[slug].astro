@@ -1,4 +1,6 @@
 ---
+export const prerender = false
+
 import MusicPlayer from '@/components/MusicPlayer.tsx'
 import Photostream from '@/components/Photostream.astro'
 import PhotostreamLayout from '@/layouts/PhotostreamLayout.astro'
@@ -6,6 +8,7 @@ import { getPublicMediaUrl } from '@/lib/server-config'
 import { getPhotostreamImages } from '@/lib/server-utils'
 import { getCollection } from 'astro:content'
 
+const slug = Astro.params.slug ?? ''
 const photoCollections = await getCollection('photos')
 const sortedPhotoCollections = photoCollections.sort((a, b) => {
   const dateA = a.data.date ? new Date(a.data.date).getTime() : 0
@@ -13,13 +16,33 @@ const sortedPhotoCollections = photoCollections.sort((a, b) => {
   return dateB - dateA
 })
 const images = await getPhotostreamImages(sortedPhotoCollections)
+const initialImage = images.find((image) => image.slug === slug)
+
+if (!initialImage) return Astro.redirect('/photos', 302)
+
+const capturedDate = initialImage.capturedAt?.match(/^\d{4}-\d{2}-\d{2}/)?.[0]
+const dateLabel = capturedDate
+  ? new Intl.DateTimeFormat('en-US', {
+      dateStyle: 'long',
+      timeZone: 'UTC',
+    }).format(new Date(`${capturedDate}T00:00:00Z`))
+  : 'Photo'
+const title =
+  initialImage.publicNote || `${dateLabel} — ${initialImage.location}`
+const description =
+  initialImage.publicNote || `${dateLabel} photo from ${initialImage.location}.`
 const albumArtworkBaseUrl = getPublicMediaUrl('albums') ?? undefined
 ---
 
 <PhotostreamLayout
-  title="Photos"
-  description="A continuous stream of travel photos, ordinary days, and one-off frames."
+  title={title}
+  description={description}
+  image={initialImage.fullSrc}
 >
-  <Photostream images={images} collectionCount={photoCollections.length} />
+  <Photostream
+    images={images}
+    collectionCount={photoCollections.length}
+    initialPhotoSlug={initialImage.slug}
+  />
   <MusicPlayer client:only="react" albumArtworkBaseUrl={albumArtworkBaseUrl} />
 </PhotostreamLayout>

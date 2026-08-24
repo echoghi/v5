@@ -1,4 +1,5 @@
 ---
+import Icon from '@/components/Icon.astro'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -7,7 +8,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-import Icon from '@/components/Icon.astro'
+import { cn } from '@/lib/utils'
 
 export interface BreadcrumbItem {
   href?: string
@@ -23,11 +24,16 @@ interface Props {
 const { items, class: className } = Astro.props
 ---
 
-<Breadcrumb className={className}>
-  <BreadcrumbList>
+<Breadcrumb
+  className={cn(
+    'paper-glass w-fit max-w-full overflow-hidden rounded-full px-3 py-2 font-sans',
+    className,
+  )}
+>
+  <BreadcrumbList className="flex-nowrap overflow-hidden text-sm">
     <BreadcrumbItem>
-      <BreadcrumbLink href="/">
-        <Icon name="lucide:home" class="size-4" />
+      <BreadcrumbLink href="/" aria-label="Homepage">
+        <Icon name="lucide:arrow-left" class="size-3.5" />
       </BreadcrumbLink>
     </BreadcrumbItem>
     {
@@ -37,15 +43,15 @@ const { items, class: className } = Astro.props
           <BreadcrumbItem>
             {index === items.length - 1 ? (
               <BreadcrumbPage>
-                <span class="flex items-center gap-x-2">
-                  {item.icon && <Icon name={item.icon} class="size-4" />}
-                  {item.label}
+                <span class="flex min-w-0 items-center gap-x-2">
+                  {item.icon && <Icon name={item.icon} class="size-3.5" />}
+                  <span class="truncate">{item.label}</span>
                 </span>
               </BreadcrumbPage>
             ) : (
               <BreadcrumbLink href={item.href}>
                 <span class="flex items-center gap-x-2">
-                  {item.icon && <Icon name={item.icon} class="size-4" />}
+                  {item.icon && <Icon name={item.icon} class="size-3.5" />}
                   {item.label}
                 </span>
               </BreadcrumbLink>

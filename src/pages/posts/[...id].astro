@@ -1,0 +1,86 @@
+---
+import PostNavigation from '@/components/PostNavigation.astro'
+import ScrollTop from '@/components/ScrollTop.astro'
+import Layout from '@/layouts/Layout.astro'
+import { formatDate } from '@/lib/utils'
+import { type CollectionEntry, getCollection, render } from 'astro:content'
+
+export async function getStaticPaths() {
+  const posts = (await getCollection('blog'))
+    .filter((post) => !post.data.draft)
+    .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  return posts.map((post) => ({
+    params: { id: post.id },
+    props: post,
+  }))
+}
+type Props = CollectionEntry<'blog'>
+
+const posts = (await getCollection('blog'))
+  .filter((post) => !post.data.draft)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+
+function getPostIndex(id: string): number {
+  return posts.findIndex((post) => post.id === id)
+}
+
+function getPrevPost(id: string): Props | null {
+  const postIndex = getPostIndex(id)
+  return postIndex !== -1 && postIndex < posts.length - 1
+    ? posts[postIndex + 1]
+    : null
+}
+
+function getNextPost(slug: string): Props | null {
+  const postIndex = getPostIndex(slug)
+  return postIndex > 0 ? posts[postIndex - 1] : null
+}
+
+const currentPostId = Astro.params.id
+const nextPost = getNextPost(currentPostId)
+const prevPost = getPrevPost(currentPostId)
+
+const post = Astro.props
+const { Content } = await render(post)
+---
+
+<Layout
+  title={post.data.title}
+  description={post.data.description}
+  image={post.data.image?.src ?? '/static/1200x630.png'}
+>
+  <section
+    class="grid grid-cols-[minmax(1rem,1fr)_minmax(0,50rem)_minmax(1rem,1fr)] gap-y-10 pt-8 sm:grid-cols-[minmax(1.5rem,1fr)_minmax(0,50rem)_minmax(1.5rem,1fr)] sm:gap-y-12 sm:pt-12"
+  >
+    <header
+      class="col-start-2 mx-auto flex w-full max-w-[44rem] flex-col items-start gap-2"
+    >
+      <h1
+        class="text-pretty font-sans text-4xl font-semibold tracking-tight sm:text-5xl"
+      >
+        {post.data.title}
+      </h1>
+      <p
+        class="max-w-[62ch] text-pretty text-lg text-muted-foreground sm:text-xl"
+      >
+        {post.data.description}
+      </p>
+      <time
+        datetime={post.data.date.toISOString()}
+        class="pt-1 font-sans text-base tabular-nums text-[oklch(var(--flexoki-tx-3))] sm:text-sm"
+      >
+        {formatDate(post.data.date)}
+      </time>
+    </header>
+
+    <article
+      class="post-prose prose prose-lg prose-flexoki col-start-2 mx-auto w-full max-w-[44rem] text-pretty font-editorial dark:prose-invert"
+    >
+      <Content />
+    </article>
+
+    <PostNavigation prevPost={prevPost} nextPost={nextPost} />
+  </section>
+
+  <ScrollTop />
+</Layout>

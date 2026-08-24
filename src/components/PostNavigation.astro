@@ -1,56 +1,59 @@
 ---
-import Link from '@/components/Link.astro'
-import { buttonVariants } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import Icon from '@/components/Icon.astro'
+import Link from '@/components/Link.astro'
+import { cn, formatDate } from '@/lib/utils'
 
 const { prevPost, nextPost } = Astro.props
 ---
 
-<div class="col-start-2 flex flex-col gap-4 sm:flex-row">
+<nav
+  class="col-start-2 mx-auto grid w-full max-w-[44rem] divide-y divide-foreground/10 border-y border-foreground/10 sm:grid-cols-2 sm:divide-x sm:divide-y-0"
+  aria-label="Post navigation"
+>
   <Link
-    href={nextPost ? `/blog/${nextPost.id}` : '#'}
+    href={nextPost ? `/posts/${nextPost.id}` : '#'}
     class={cn(
-      buttonVariants({ variant: 'outline' }),
-      'bg-transparent rounded-md group flex items-center justify-start w-full sm:w-1/2 h-fit',
-      !nextPost && 'pointer-events-none opacity-50 cursor-not-allowed',
+      'group flex min-w-0 items-center justify-start gap-3 rounded-xl px-2 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:pr-6',
+      !nextPost && 'pointer-events-none cursor-not-allowed opacity-35',
     )}
     aria-disabled={!nextPost}
   >
-    <div class="mr-2 flex-shrink-0">
+    <div class="shrink-0">
       <Icon
         name="lucide:arrow-left"
-        class="size-4 transition-transform group-hover:-translate-x-1"
+        class="size-4 transition-transform group-hover:-translate-x-0.5"
       />
     </div>
-    <div class="flex flex-col items-start overflow-hidden">
-      <span class="text-left text-xs text-muted-foreground">Next Post</span>
-      <span class="w-full truncate text-left text-sm"
+    <div class="flex min-w-0 flex-col items-start gap-1 overflow-hidden">
+      <span class="font-sans text-sm tabular-nums text-muted-foreground">
+        {nextPost ? formatDate(nextPost.data.date) : 'No newer post'}
+      </span>
+      <span class="w-full truncate text-left text-base font-medium"
         >{nextPost?.data.title || 'Latest post!'}</span
       >
     </div>
   </Link>
   <Link
-    href={prevPost ? `/blog/${prevPost.id}` : '#'}
+    href={prevPost ? `/posts/${prevPost.id}` : '#'}
     class={cn(
-      buttonVariants({ variant: 'outline' }),
-      'bg-transparent rounded-md group flex items-center justify-end w-full sm:w-1/2 h-fit',
-      !prevPost && 'pointer-events-none opacity-50 cursor-not-allowed',
+      'group flex min-w-0 items-center justify-end gap-3 rounded-xl px-2 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:pl-6',
+      !prevPost && 'pointer-events-none cursor-not-allowed opacity-35',
     )}
     aria-disabled={!prevPost}
   >
-    <div class="flex flex-col items-end overflow-hidden">
-      <span class="text-right text-xs text-muted-foreground">Previous Post</span
-      >
-      <span class="w-full truncate text-right text-sm"
+    <div class="flex min-w-0 flex-col items-end gap-1 overflow-hidden">
+      <span class="font-sans text-sm tabular-nums text-muted-foreground">
+        {prevPost ? formatDate(prevPost.data.date) : 'No older post'}
+      </span>
+      <span class="w-full truncate text-right text-base font-medium"
         >{prevPost?.data.title || 'Last post!'}</span
       >
     </div>
-    <div class="ml-2 flex-shrink-0">
+    <div class="shrink-0">
       <Icon
         name="lucide:arrow-right"
-        class="size-4 transition-transform group-hover:translate-x-1"
+        class="size-4 transition-transform group-hover:translate-x-0.5"
       />
     </div>
   </Link>
-</div>
+</nav>

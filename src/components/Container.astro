@@ -8,4 +8,6 @@ interface Props {
 const { class: className } = Astro.props
 ---
 
-<div class={cn('mx-auto max-w-screen-md px-4', className)}><slot /></div>
+<div class={cn('mx-auto w-full max-w-3xl px-4 sm:px-6', className)}>
+  <slot />
+</div>

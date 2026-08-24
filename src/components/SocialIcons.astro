@@ -39,10 +39,18 @@ const getSocialLink = ({ href, label }: SocialLink) => ({
             href={href}
             aria-label={ariaLabel}
             title={ariaLabel}
-            class={buttonVariants({ variant: 'outline', size: 'icon' })}
+            class={buttonVariants({
+              variant: 'outline',
+              size: 'icon',
+              className: 'relative rounded-xl',
+            })}
             external
           >
             <Icon name={iconName} class="size-4" />
+            <span
+              class="pointer-fine:hidden absolute left-1/2 top-1/2 size-[max(100%,3rem)] -translate-x-1/2 -translate-y-1/2"
+              aria-hidden="true"
+            />
           </Link>
         </li>
       )

@@ -1,9 +1,6 @@
 import * as React from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Slider } from '@/components/ui/slider'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
 interface NoiseOverlayProps {
@@ -22,18 +19,6 @@ export function NoiseOverlay({ image, className = '' }: NoiseOverlayProps) {
 
   const updateOpacity = React.useCallback((value: number) => {
     setOpacity(Math.min(1, Math.max(0, value)))
-  }, [])
-
-  const handleFrequencyChange = React.useCallback((value: number[]) => {
-    updateBaseFrequency(value[0])
-  }, [updateBaseFrequency])
-
-  const handleOpacityChange = React.useCallback((value: number[]) => {
-    updateOpacity(value[0])
-  }, [updateOpacity])
-
-  const handleNoiseToggle = React.useCallback((checked: boolean) => {
-    setNoiseEnabled(checked)
   }, [])
 
   const noiseSvg = React.useMemo(() => {
@@ -58,17 +43,23 @@ export function NoiseOverlay({ image, className = '' }: NoiseOverlayProps) {
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-center space-x-2">
-          <Switch
+        <label
+          htmlFor="noise-toggle"
+          className="flex w-fit cursor-pointer items-center gap-2"
+        >
+          <input
             id="noise-toggle"
+            type="checkbox"
+            className="peer sr-only"
             checked={noiseEnabled}
-            onCheckedChange={handleNoiseToggle}
+            onChange={(event) => setNoiseEnabled(event.currentTarget.checked)}
           />
-          <Label htmlFor="noise-toggle">Noise Overlay</Label>
-        </div>
+          <span className="relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent bg-border shadow-sm transition-colors after:block after:h-4 after:w-4 after:rounded-full after:bg-background after:shadow-lg after:transition-transform peer-checked:bg-primary peer-checked:after:translate-x-4 peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background peer-disabled:cursor-not-allowed peer-disabled:opacity-50" />
+          <span>Noise Overlay</span>
+        </label>
 
         <div className="space-y-2">
-          <Label>Base Frequency: {baseFrequency.toFixed(2)}</Label>
+          <div>Base Frequency: {baseFrequency.toFixed(2)}</div>
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
             <Button
               type="button"
@@ -81,14 +72,18 @@ export function NoiseOverlay({ image, className = '' }: NoiseOverlayProps) {
             >
               <Minus className="h-4 w-4" aria-hidden="true" />
             </Button>
-            <Slider
-              value={[baseFrequency]}
-              onValueChange={handleFrequencyChange}
+            <input
+              type="range"
+              value={baseFrequency}
+              onChange={(event) =>
+                updateBaseFrequency(Number(event.currentTarget.value))
+              }
               min={0.1}
               max={2}
               step={0.05}
               disabled={!noiseEnabled}
               aria-label="Base frequency"
+              className="h-10 w-full cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-50"
             />
             <Button
               type="button"
@@ -105,7 +100,7 @@ export function NoiseOverlay({ image, className = '' }: NoiseOverlayProps) {
         </div>
 
         <div className="space-y-2">
-          <Label>Opacity: {opacity.toFixed(2)}</Label>
+          <div>Opacity: {opacity.toFixed(2)}</div>
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
             <Button
               type="button"
@@ -118,14 +113,18 @@ export function NoiseOverlay({ image, className = '' }: NoiseOverlayProps) {
             >
               <Minus className="h-4 w-4" aria-hidden="true" />
             </Button>
-            <Slider
-              value={[opacity]}
-              onValueChange={handleOpacityChange}
+            <input
+              type="range"
+              value={opacity}
+              onChange={(event) =>
+                updateOpacity(Number(event.currentTarget.value))
+              }
               min={0}
               max={1}
               step={0.05}
               disabled={!noiseEnabled}
               aria-label="Opacity"
+              className="h-10 w-full cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-50"
             />
             <Button
               type="button"

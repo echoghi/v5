@@ -4,52 +4,77 @@ import Link from '@/components/Link.astro'
 import MobileMenu from '@/components/ui/mobile-menu'
 import { NAV_LINKS } from '@/site.config'
 import Logo from './Logo.astro'
+
+const pathname = Astro.url.pathname
+const isActive = (href: string) =>
+  href === '/' ? pathname === '/' : pathname.startsWith(href)
 ---
 
 <header
-  class="sticky top-0 z-10 transition-all duration-300"
+  class="sticky top-3 z-30"
   transition:persist
   id="main-header"
+  data-scrolled="false"
 >
   <Container>
-    <div class="flex flex-wrap items-center justify-between gap-4 py-4">
+    <div
+      class="liquid-glass liquid-glass-adaptive site-header-surface mx-auto flex items-center justify-between gap-3 rounded-2xl px-2.5 py-2 sm:px-3"
+    >
       <Link
         href="/"
-        class="z-50 flex flex-shrink-0 items-center gap-2 text-lg font-semibold transition-colors duration-300 hover:text-primary"
+        aria-label="Homepage"
+        class="z-50 flex shrink-0 items-center rounded-xl p-1 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Logo />
       </Link>
-      <div class="flex items-center gap-2 md:gap-4">
-        <nav class="hidden items-center gap-4 text-sm sm:gap-6 md:flex">
+      <div class="flex items-center gap-2">
+        <nav class="hidden items-center gap-1 md:flex" aria-label="Primary">
           {
             NAV_LINKS.map((item) => (
               <Link
                 href={item.href}
-                class="capitalize text-foreground/60 transition-colors hover:text-foreground/80"
+                aria-current={isActive(item.href) ? 'page' : undefined}
+                class:list={[
+                  'rounded-xl px-3 py-2 text-sm capitalize text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  isActive(item.href) && 'bg-secondary/60 text-foreground',
+                ]}
               >
                 {item.label}
               </Link>
             ))
           }
         </nav>
-        <MobileMenu client:load transition:persist />
+        <MobileMenu client:load transition:persist currentPath={pathname} />
       </div>
     </div>
   </Container>
 </header>
 
 <script>
-  const header = document.getElementById('main-header')
+  type HeaderWindow = Window & {
+    __siteHeaderController?: AbortController
+  }
 
-  if (header) {
-    window.addEventListener('scroll', () => {
-      if (window.scrollY > 0) {
-        header.classList.add('bg-background/50', 'backdrop-blur-md')
-        header.classList.remove('bg-transparent')
-      } else {
-        header.classList.remove('bg-background/50', 'backdrop-blur-md')
-        header.classList.add('bg-transparent')
-      }
+  const runtimeWindow = window as HeaderWindow
+
+  function setupHeader() {
+    runtimeWindow.__siteHeaderController?.abort()
+    const controller = new AbortController()
+    runtimeWindow.__siteHeaderController = controller
+    const header = document.getElementById('main-header')
+    if (!header) return
+
+    const updateHeader = () => {
+      header.dataset.scrolled = String(window.scrollY > 16)
+    }
+
+    updateHeader()
+    window.addEventListener('scroll', updateHeader, {
+      passive: true,
+      signal: controller.signal,
     })
   }
+
+  document.addEventListener('astro:page-load', setupHeader)
+  setupHeader()
 </script>

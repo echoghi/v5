@@ -1,20 +1,25 @@
 ---
 import Container from '@/components/Container.astro'
-import { SITE, SOCIAL_LINKS } from '@/site.config'
+import { SOCIAL_LINKS } from '@/site.config'
 import SocialIcons from './SocialIcons.astro'
+
+// Initial commit: d263c2cc81d93247ba0a9a3265f84d500e603614
+const firstCommitAt = new Date('2024-12-15T08:56:19-08:00')
+const millisecondsPerYear = 365.2425 * 24 * 60 * 60 * 1000
+const yearsMaintained = (
+  (Date.now() - firstCommitAt.getTime()) /
+  millisecondsPerYear
+).toFixed(2)
 ---
 
-<footer class="py-4">
+<footer class="pb-5 pt-8 sm:pb-8">
   <Container>
     <div
-      class="flex flex-col items-center justify-center gap-y-2 sm:flex-row sm:justify-between"
+      class="flex flex-col items-center justify-center gap-4 border-t border-foreground/10 pt-6 sm:flex-row sm:justify-between"
     >
-      <div class="flex items-center">
-        <p class="text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()}
-          {SITE.TITLE}. All rights reserved.
-        </p>
-      </div>
+      <p class="text-center text-base text-muted-foreground sm:text-sm">
+        Maintained by Emile for {yearsMaintained} years.
+      </p>
       <SocialIcons links={SOCIAL_LINKS} />
     </div>
   </Container>

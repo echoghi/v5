@@ -16,8 +16,9 @@ export function ScrollingText({
   const textRef = useRef<HTMLDivElement>(null)
   const animationRef = useRef<number | null>(null)
   const positionRef = useRef(0)
-  const [shouldScroll, setShouldScroll] = useState(false)
+  const [scrollDistance, setScrollDistance] = useState(0)
   const [isHovering, setIsHovering] = useState(false)
+  const shouldScroll = scrollDistance > 0
 
   // Store animation-related values in refs to avoid re-renders
   const maxDistanceRef = useRef(0)
@@ -30,27 +31,33 @@ export function ScrollingText({
         const containerWidth = containerRef.current.clientWidth
         const textWidth = textRef.current.scrollWidth
 
-        // Only set shouldScroll if text is actually wider than container
-        const shouldScrollNow = textWidth > containerWidth
-        maxDistanceRef.current = shouldScrollNow
-          ? textWidth - containerWidth
-          : 0
-        setShouldScroll(shouldScrollNow)
+        const distance = Math.max(0, textWidth - containerWidth)
+        maxDistanceRef.current = distance
+        setScrollDistance(distance)
 
         // Reset position if text doesn't need to scroll
-        if (!shouldScrollNow) {
+        if (distance === 0) {
           positionRef.current = 0
           if (textRef.current) {
             textRef.current.style.transform = `translateX(0px)`
           }
+        } else if (positionRef.current > distance) {
+          positionRef.current = distance
+          textRef.current.style.transform = `translateX(-${distance}px)`
         }
       }
     }
 
     checkOverflow()
 
+    const resizeObserver = new ResizeObserver(checkOverflow)
+    if (containerRef.current) resizeObserver.observe(containerRef.current)
+    if (textRef.current) resizeObserver.observe(textRef.current)
     window.addEventListener('resize', checkOverflow)
+    void document.fonts?.ready.then(checkOverflow)
+
     return () => {
+      resizeObserver.disconnect()
       window.removeEventListener('resize', checkOverflow)
     }
   }, [text])
@@ -129,8 +136,9 @@ export function ScrollingText({
         cancelAnimationFrame(animationRef.current)
         animationRef.current = null
       }
+      isAnimatingRef.current = false
     }
-  }, [isHovering, shouldScroll, speed])
+  }, [isHovering, scrollDistance, shouldScroll, speed])
 
   const handleMouseEnter = () => {
     setIsHovering(true)

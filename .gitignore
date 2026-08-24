@@ -7,6 +7,10 @@ dist/
 
 # personal photos
 /photos/
+/photos-google/
+
+# local-only photo metadata review notes
+/src/data/photo-review-notes.json
 
 # dependencies
 node_modules/

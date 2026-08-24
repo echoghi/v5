@@ -15,6 +15,8 @@ So I decided to trim it down. I added a little build step to subset the font so 
 
 The difference was pretty satisfying. The font went from 33kb down to about 10kb, which is roughly a 70% reduction. It doesn't make a huge difference, but it’s a small optimization that makes the site snappier and keeps bandwidth usage lower.
 
+![A terminal showing the file-size savings from font subsetting](subset-font-cover.webp)
+
 Here’s a simple example of how I did it using Bash, Python, and fonttools:
 
 ```bash title="process-fonts.sh" caption="Creating font subsets via fonttools"

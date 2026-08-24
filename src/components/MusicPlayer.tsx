@@ -1,15 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
 import { Minus, Pause, Play, Plus, SkipBack, SkipForward } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { songs as playlists, type Song, type SongData } from '@/consts'
+import {
+  photostreamPlaylist,
+  songs as playlists,
+  type PlaylistSong,
+  type SongData,
+} from '@/consts'
 import { SpinningCD } from '@/components/SpinningCD'
 import { ScrollingText } from '@/components/ScrollingText'
-import usePlausible from '@/hooks/usePlausible'
 import { SPECTRUM_BAR_COUNT, useAudioSpectrum } from '@/hooks/useAudioSpectrum'
 
+type PlausibleWindow = Window & {
+  plausible?: (
+    eventName: string,
+    options?: { props?: Record<string, string> },
+  ) => void
+}
+
 function createSongData(
-  locationId: string,
-  song: Song,
+  song: PlaylistSong,
   albumArtworkBaseUrl?: string,
 ): SongData {
   return {
@@ -17,24 +27,35 @@ function createSongData(
     albumCover: albumArtworkBaseUrl
       ? `${albumArtworkBaseUrl}/${song.id}.webp`
       : '/static/logo.png',
-    mp3Src: `/audio/${locationId}/${song.id}.mp3`,
+    mp3Src: `/audio/${song.collectionId}/${song.id}.mp3`,
   }
 }
 
+function shufflePlaylist(playlist: PlaylistSong[]): PlaylistSong[] {
+  const shuffled = [...playlist]
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1))
+    const currentSong = shuffled[index]
+    shuffled[index] = shuffled[randomIndex]
+    shuffled[randomIndex] = currentSong
+  }
+
+  return shuffled
+}
+
 function MusicPlayer({
-  id,
   playlist,
   albumArtworkBaseUrl,
 }: {
-  id: string
-  playlist: Song[]
+  playlist: PlaylistSong[]
   albumArtworkBaseUrl?: string
 }) {
-  const { trackEvent } = usePlausible()
   const [open, setOpen] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentSongIndex, setCurrentSongIndex] = useState(0)
   const [hasInteracted, setHasInteracted] = useState(false)
+  const [shuffledPlaylist] = useState(() => shufflePlaylist(playlist))
   const audioRef = useRef<HTMLAudioElement>(null)
   const playbackRequestedRef = useRef(false)
   const trackedSongRef = useRef<string | null>(null)
@@ -46,8 +67,9 @@ function MusicPlayer({
     stopSpectrum,
   } = useAudioSpectrum(audioRef)
 
-  const currentSong = playlist[currentSongIndex] ?? playlist[0]
-  const currentSongData = createSongData(id, currentSong, albumArtworkBaseUrl)
+  const currentSong =
+    shuffledPlaylist[currentSongIndex] ?? shuffledPlaylist[0]
+  const currentSongData = createSongData(currentSong, albumArtworkBaseUrl)
 
   const handlePlaybackError = (error: unknown) => {
     playbackRequestedRef.current = false
@@ -89,12 +111,12 @@ function MusicPlayer({
   }
 
   const nextSong = () => {
-    setCurrentSongIndex((index) => (index + 1) % playlist.length)
+    setCurrentSongIndex((index) => (index + 1) % shuffledPlaylist.length)
   }
 
   const previousSong = () => {
     setCurrentSongIndex((index) =>
-      index === 0 ? playlist.length - 1 : index - 1,
+      index === 0 ? shuffledPlaylist.length - 1 : index - 1,
     )
   }
 
@@ -144,7 +166,7 @@ function MusicPlayer({
 
     if (trackedSongRef.current !== currentSongData.id) {
       trackedSongRef.current = currentSongData.id
-      trackEvent('song', {
+      ;(window as PlausibleWindow).plausible?.('song', {
         props: {
           title: currentSongData.title,
           artist: currentSongData.artist,
@@ -165,12 +187,12 @@ function MusicPlayer({
       : 'Expand music player'
 
   return (
-    <div className="fixed bottom-8 left-8 z-[99] hidden 2xl:block">
+    <div className="fixed bottom-3 left-3 z-[120] text-white [--background:0_0_0] [--foreground:1_0_0] [--muted-foreground:0.78_0_0] sm:bottom-5 sm:left-5">
       <button
         type="button"
         aria-label={primaryButtonLabel}
         onClick={handlePrimaryButton}
-        className="absolute -right-4 -top-4 z-[999] rounded-full border-2 border-foreground/10 bg-foreground/10 p-2 backdrop-blur-md transition-all duration-300 hover:scale-110 active:scale-95"
+        className="liquid-glass absolute -right-3 -top-3 z-[2] rounded-full p-2 text-white transition-transform duration-200 hover:scale-105 active:scale-95"
       >
         {!hasInteracted ? (
           <Play
@@ -185,36 +207,46 @@ function MusicPlayer({
         )}
       </button>
 
-      <div className="relative flex h-[56px] max-w-md items-center justify-between gap-6 rounded-md bg-foreground/10 px-6 shadow-md transition-all">
+      <div
+        className={cn(
+          'liquid-glass relative flex h-14 items-center justify-between overflow-hidden rounded-full px-4 shadow-2xl transition-[width,padding] duration-300 sm:px-5',
+          open
+            ? 'w-[min(30rem,calc(100vw-2.5rem))] gap-3 sm:gap-5'
+            : 'w-[66px] sm:w-[74px]',
+        )}
+      >
         <div
-          className={cn('flex items-center gap-6', !hasInteracted && 'gap-0')}
+          className={cn(
+            'flex shrink-0 items-center',
+            hasInteracted ? 'gap-3' : 'gap-0',
+          )}
         >
           <SpinningCD song={currentSongData} isPlaying={isPlaying} />
 
-          <div
-            aria-hidden="true"
-            className="flex h-6 items-end gap-[3px] overflow-hidden"
-          >
-            {hasInteracted
-              ? Array.from({ length: SPECTRUM_BAR_COUNT }, (_, index) => (
-                  <span
-                    key={index}
-                    ref={(element) => {
-                      barRefs.current[index] = element
-                    }}
-                    className="h-full w-[3px] origin-bottom scale-y-[0.12] bg-foreground motion-reduce:transform-none"
-                    style={{ willChange: 'transform' }}
-                  />
-                ))
-              : null}
-          </div>
+          {open ? (
+            <div
+              aria-hidden="true"
+              className="flex h-6 items-end gap-[3px] overflow-hidden"
+            >
+              {Array.from({ length: SPECTRUM_BAR_COUNT }, (_, index) => (
+                <span
+                  key={index}
+                  ref={(element) => {
+                    barRefs.current[index] = element
+                  }}
+                  className="h-full w-[3px] origin-bottom scale-y-[0.12] bg-white motion-reduce:transform-none"
+                  style={{ willChange: 'transform' }}
+                />
+              ))}
+            </div>
+          ) : null}
         </div>
 
         {open ? (
           <>
-            <div className="flex items-center gap-2 pr-4">
-              <div className="max-w-[150px]">
-                <h3 className="text-base font-bold leading-tight text-foreground">
+            <div className="min-w-0 flex-1 pr-1 sm:pr-3">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold leading-tight text-white sm:text-base">
                   <ScrollingText
                     text={currentSongData.title}
                     className="max-w-full"
@@ -222,7 +254,7 @@ function MusicPlayer({
                   />
                 </h3>
                 <p
-                  className="text-xs text-muted-foreground"
+                  className="text-xs text-white/55"
                   title={`${currentSongData.title} by ${currentSongData.artist}`}
                 >
                   <ScrollingText
@@ -234,18 +266,14 @@ function MusicPlayer({
               </div>
             </div>
 
-            <div className="flex items-center gap-4 text-foreground">
+            <div className="flex shrink-0 items-center gap-3 text-white sm:gap-4">
               <button
                 type="button"
                 aria-label="Previous song"
                 onClick={previousSong}
                 className="transition-transform hover:scale-110 active:scale-95"
               >
-                <SkipBack
-                  aria-hidden="true"
-                  className="fill-foreground dark:fill-none"
-                  size={18}
-                />
+                <SkipBack aria-hidden="true" className="fill-white" size={18} />
               </button>
 
               <button
@@ -255,17 +283,9 @@ function MusicPlayer({
                 className="transition-transform hover:scale-110 active:scale-95"
               >
                 {isPlaying ? (
-                  <Pause
-                    aria-hidden="true"
-                    className="fill-foreground dark:fill-none"
-                    size={22}
-                  />
+                  <Pause aria-hidden="true" className="fill-white" size={22} />
                 ) : (
-                  <Play
-                    aria-hidden="true"
-                    className="fill-foreground dark:fill-none"
-                    size={22}
-                  />
+                  <Play aria-hidden="true" className="fill-white" size={22} />
                 )}
               </button>
 
@@ -277,7 +297,7 @@ function MusicPlayer({
               >
                 <SkipForward
                   aria-hidden="true"
-                  className="fill-foreground dark:fill-none"
+                  className="fill-white"
                   size={18}
                 />
               </button>
@@ -299,18 +319,20 @@ function MusicPlayer({
   )
 }
 
-export default function MusicPlayerForGallery({
+export default function MusicPlayerOverlay({
   id,
   albumArtworkBaseUrl,
 }: {
-  id: string
+  id?: string
   albumArtworkBaseUrl?: string
 }) {
-  const playlist = playlists[id]
+  const playlist: PlaylistSong[] = id
+    ? (playlists[id] ?? []).map((song) => ({ ...song, collectionId: id }))
+    : photostreamPlaylist
+
   if (!playlist?.length) return null
   return (
     <MusicPlayer
-      id={id}
       playlist={playlist}
       albumArtworkBaseUrl={albumArtworkBaseUrl}
     />

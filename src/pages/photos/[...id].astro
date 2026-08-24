@@ -1,70 +1,12 @@
 ---
-import Breadcrumbs from '@/components/Breadcrumbs.astro'
-import Container from '@/components/Container.astro'
-import MusicPlayer from '@/components/MusicPlayer.tsx'
-import PhotoGallery from '@/components/PhotoGallery.astro'
-import ScrollTop from '@/components/ScrollTop.astro'
-import { songs } from '@/consts'
-import Layout from '@/layouts/Layout.astro'
-import { getPublicMediaUrl } from '@/lib/server-config'
-import { getAlbumImages } from '@/lib/server-utils'
-import { type CollectionEntry, getCollection } from 'astro:content'
+import { getCollection } from 'astro:content'
 
 export async function getStaticPaths() {
   const photos = await getCollection('photos')
   return photos.map((collection) => ({
     params: { id: collection.id },
-    props: collection,
   }))
 }
 
-type Props = CollectionEntry<'photos'>
-const collection = Astro.props
-
-const galleryImages = await getAlbumImages(collection.id)
-const hasMusic = Boolean(songs[collection.id]?.length)
-const albumArtworkBaseUrl = getPublicMediaUrl('albums') ?? undefined
+return Astro.redirect('/photos', 301)
 ---
-
-<Layout title={collection.data.name} description={collection.data.description}>
-  {
-    hasMusic ? (
-      <MusicPlayer
-        client:load
-        id={collection.id}
-        albumArtworkBaseUrl={albumArtworkBaseUrl}
-      />
-    ) : null
-  }
-  <Container class="flex flex-col gap-y-6">
-    <section class="mx-auto">
-      <Breadcrumbs
-        items={[
-          { href: '/photos', label: 'Photos', icon: 'lucide:camera' },
-          { label: collection.data.name, icon: 'lucide:images' },
-        ]}
-        class="mb-8"
-      />
-
-      <div class="mb-12 text-left">
-        <h1 class="mb-4 text-2xl font-bold">
-          {collection.data.title || collection.data.name}
-        </h1>
-        {
-          collection.data.description && (
-            <p class="text-base text-muted-foreground">
-              {collection.data.description}
-            </p>
-          )
-        }
-      </div>
-
-      <PhotoGallery
-        name={collection.data.name}
-        images={galleryImages}
-        id={collection.id}
-      />
-      <ScrollTop />
-    </section>
-  </Container>
-</Layout>

@@ -1,8 +1,5 @@
 ---
-import DevThemeToggle from '@/components/DevThemeToggle.astro'
-import Footer from '@/components/Footer.astro'
 import Head from '@/components/Head.astro'
-import Header from '@/components/Header.astro'
 import { analyticsConfig } from '@/lib/analytics-config'
 import { SITE } from '@/site.config'
 
@@ -13,11 +10,10 @@ type Props = {
 }
 
 const { title, description, image } = Astro.props
-const showDevThemeToggle = import.meta.env.DEV
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" class="photostream-document">
   <head>
     <Head
       title={`${title} | ${SITE.TITLE}`}
@@ -36,16 +32,9 @@ const showDevThemeToggle = import.meta.env.DEV
       )
     }
   </head>
-  <body class="overflow-x-hidden">
-    <div
-      class="isolate box-border flex min-h-dvh flex-col font-sans antialiased"
-    >
-      <Header />
-      <main class="grow pb-12 pt-5 sm:pb-16 sm:pt-8">
-        <slot />
-      </main>
-      <Footer />
-    </div>
-    {showDevThemeToggle && <DevThemeToggle />}
+  <body class="photostream-page">
+    <main>
+      <slot />
+    </main>
   </body>
 </html>
