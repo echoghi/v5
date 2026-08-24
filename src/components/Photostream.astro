@@ -328,7 +328,11 @@ const eagerImageCount = 12
     const reduceMotion = window.matchMedia(
       '(prefers-reduced-motion: reduce)',
     ).matches
-    const transitionDuration = reduceMotion ? 1 : 480
+    const transitionDuration = reduceMotion
+      ? 1
+      : window.innerWidth < 640
+        ? 320
+        : 480
     const transitionEasing = 'cubic-bezier(0.22, 1, 0.36, 1)'
     let currentIndex = -1
     let opener: HTMLButtonElement | null = null
@@ -1086,11 +1090,12 @@ const eagerImageCount = 12
             ? naturalRatio
             : fallbackRatio
 
-      const isMobile = window.innerWidth < 640
-      const isDesktop = window.innerWidth >= 900
-      const maxWidth = window.innerWidth * (isMobile ? 1 : 0.94)
-      const maxHeight =
-        window.innerHeight * (isMobile ? 0.9 : isDesktop ? 1 : 0.94)
+      const viewportWidth = lightbox.clientWidth || window.innerWidth
+      const viewportHeight = lightbox.clientHeight || window.innerHeight
+      const isMobile = viewportWidth < 640
+      const isDesktop = viewportWidth >= 900
+      const maxWidth = viewportWidth * (isMobile ? 1 : 0.94)
+      const maxHeight = viewportHeight * (isMobile ? 0.9 : isDesktop ? 1 : 0.94)
       let width = maxWidth
       let height = width / ratio
 
@@ -1100,16 +1105,12 @@ const eagerImageCount = 12
       }
 
       return {
-        left: (window.innerWidth - width) / 2,
-        top: (window.innerHeight - height) / 2,
         width,
         height,
       }
     }
 
     function applyFrame(frame: ReturnType<typeof getTargetFrame>) {
-      heroStage.style.left = `${frame.left}px`
-      heroStage.style.top = `${frame.top}px`
       heroStage.style.width = `${frame.width}px`
       heroStage.style.height = `${frame.height}px`
     }
@@ -1206,10 +1207,11 @@ const eagerImageCount = 12
       setPageScrollLocked(true)
       prepareHero(safeIndex)
 
-      const frame = getTargetFrame(sourceImage)
+      const frame = heroStage.getBoundingClientRect()
+      const shouldFlipFromGrid = animateFromGrid && window.innerWidth >= 640
       lightbox.getAnimations().forEach((animation) => animation.cancel())
       heroStage.getAnimations().forEach((animation) => animation.cancel())
-      heroStage.style.transformOrigin = '0 0'
+      heroStage.style.transformOrigin = shouldFlipFromGrid ? '0 0' : '50% 50%'
       heroStage.style.opacity = '1'
 
       const backdropAnimation = lightbox.animate(
@@ -1223,7 +1225,7 @@ const eagerImageCount = 12
       const sourceRect = sourceImage.getBoundingClientRect()
       const firstTransform = `translate3d(${sourceRect.left - frame.left}px, ${sourceRect.top - frame.top}px, 0) scale(${sourceRect.width / frame.width}, ${sourceRect.height / frame.height})`
       const imageAnimation = heroStage.animate(
-        animateFromGrid
+        shouldFlipFromGrid
           ? [
               { transform: firstTransform },
               { transform: 'translate3d(0, 0, 0) scale(1)' },
@@ -1231,11 +1233,11 @@ const eagerImageCount = 12
           : [
               {
                 opacity: 0,
-                transform: 'translate3d(0, 8px, 0) scale(0.99)',
+                transform: 'scale(0.99)',
               },
               {
                 opacity: 1,
-                transform: 'translate3d(0, 0, 0) scale(1)',
+                transform: 'scale(1)',
               },
             ],
         {
@@ -1269,6 +1271,7 @@ const eagerImageCount = 12
       const lastTransform = `translate3d(${sourceRect.left - currentRect.left}px, ${sourceRect.top - currentRect.top}px, 0) scale(${sourceRect.width / currentRect.width}, ${sourceRect.height / currentRect.height})`
       const canFlipToTile =
         animateToGrid &&
+        window.innerWidth >= 640 &&
         sourceRect.width > 0 &&
         sourceRect.height > 0 &&
         sourceRect.bottom > 0 &&
@@ -1294,11 +1297,11 @@ const eagerImageCount = 12
           : [
               {
                 opacity: 1,
-                transform: 'translate3d(0, 0, 0) scale(1)',
+                transform: 'scale(1)',
               },
               {
                 opacity: 0,
-                transform: 'translate3d(0, 8px, 0) scale(0.99)',
+                transform: 'scale(0.99)',
               },
             ],
         {
@@ -1919,6 +1922,8 @@ const eagerImageCount = 12
     position: fixed;
     inset: 0;
     z-index: 110;
+    display: grid;
+    place-items: center;
     overflow: hidden;
     background: rgb(0 0 0 / 96%);
     overscroll-behavior: contain;
@@ -1930,7 +1935,7 @@ const eagerImageCount = 12
   }
 
   .lightbox-stage {
-    position: fixed;
+    position: relative;
     z-index: 1;
     display: block;
     max-width: none;
