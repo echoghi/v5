@@ -10,9 +10,5 @@ export const onRequest = defineMiddleware((context, next) => {
     return context.redirect(`/posts${legacySuffix}${search}`, 308)
   }
 
-  if (pathname.length > 1 && pathname.endsWith('/')) {
-    return context.redirect(`${pathname.replace(/\/+$/, '')}${search}`, 308)
-  }
-
   return next()
 })

@@ -12,7 +12,6 @@ const isActive = (href: string) =>
 
 <header
   class="sticky top-3 z-30"
-  transition:persist
   id="main-header"
   data-scrolled="false"
 >
@@ -44,7 +43,7 @@ const isActive = (href: string) =>
             ))
           }
         </nav>
-        <MobileMenu client:load transition:persist currentPath={pathname} />
+        <MobileMenu client:load currentPath={pathname} />
       </div>
     </div>
   </Container>
