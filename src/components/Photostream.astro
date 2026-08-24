@@ -112,7 +112,6 @@ const eagerImageCount = 12
             </p>
             <p class="photostream-signoff">Emile</p>
           </div>
-
         </div>
       </div>
     </div>
@@ -183,7 +182,21 @@ const eagerImageCount = 12
     aria-hidden="true"
     hidden
   >
-    <img id="lightbox-image" class="lightbox-image" alt="" draggable="false" />
+    <div id="lightbox-stage" class="lightbox-stage">
+      <img
+        id="lightbox-image"
+        class="lightbox-image"
+        alt=""
+        draggable="false"
+      />
+      <img
+        id="lightbox-full-image"
+        class="lightbox-image lightbox-full-image"
+        alt=""
+        aria-hidden="true"
+        draggable="false"
+      />
+    </div>
 
     <button
       class="liquid-glass glass-button glass-icon lightbox-nav lightbox-prev"
@@ -278,7 +291,11 @@ const eagerImageCount = 12
     )!
 
     const lightbox = root.querySelector<HTMLElement>('#photostream-lightbox')!
+    const heroStage = root.querySelector<HTMLElement>('#lightbox-stage')!
     const hero = root.querySelector<HTMLImageElement>('#lightbox-image')!
+    const fullHero = root.querySelector<HTMLImageElement>(
+      '#lightbox-full-image',
+    )!
     const prevButton = root.querySelector<HTMLButtonElement>('#lightbox-prev')!
     const nextButton = root.querySelector<HTMLButtonElement>('#lightbox-next')!
     if (
@@ -299,7 +316,9 @@ const eagerImageCount = 12
       !detailsLens ||
       !detailsLocation ||
       !lightbox ||
+      !heroStage ||
       !hero ||
+      !fullHero ||
       !prevButton ||
       !nextButton
     ) {
@@ -321,6 +340,10 @@ const eagerImageCount = 12
     let contextDetailsAnimation: Animation | null = null
     let collapsedContextFrame: { width: number; height: number } | null = null
     let activeContextDetails: HTMLElement | null = null
+    let lockedScrollX = 0
+    let lockedScrollY = 0
+    let pageScrollLocked = false
+    let previousScrollRestoration: History['scrollRestoration'] | null = null
 
     type LiquidGlassFrame = {
       width: number
@@ -717,8 +740,41 @@ const eagerImageCount = 12
     }
 
     function setPageScrollLocked(locked: boolean) {
+      if (locked === pageScrollLocked) return
+      pageScrollLocked = locked
+
+      if (locked) {
+        lockedScrollX = window.scrollX
+        lockedScrollY = window.scrollY
+        previousScrollRestoration = history.scrollRestoration
+        history.scrollRestoration = 'manual'
+
+        // iOS Safari can move the layout viewport when overflow is toggled on
+        // the root. Pinning the body keeps the exact grid position underneath
+        // the lightbox until it is restored below.
+        document.body.style.position = 'fixed'
+        document.body.style.inset = `${-lockedScrollY}px 0 0 ${-lockedScrollX}px`
+        document.body.style.width = '100%'
+      }
+
       document.documentElement.classList.toggle('photostream-locked', locked)
       document.body.classList.toggle('photostream-locked', locked)
+
+      if (!locked) {
+        document.body.style.removeProperty('position')
+        document.body.style.removeProperty('inset')
+        document.body.style.removeProperty('width')
+        window.scrollTo({
+          left: lockedScrollX,
+          top: lockedScrollY,
+          behavior: 'instant',
+        })
+
+        if (previousScrollRestoration) {
+          history.scrollRestoration = previousScrollRestoration
+          previousScrollRestoration = null
+        }
+      }
     }
 
     signal.addEventListener('abort', () => setPageScrollLocked(false), {
@@ -1052,10 +1108,10 @@ const eagerImageCount = 12
     }
 
     function applyFrame(frame: ReturnType<typeof getTargetFrame>) {
-      hero.style.left = `${frame.left}px`
-      hero.style.top = `${frame.top}px`
-      hero.style.width = `${frame.width}px`
-      hero.style.height = `${frame.height}px`
+      heroStage.style.left = `${frame.left}px`
+      heroStage.style.top = `${frame.top}px`
+      heroStage.style.width = `${frame.width}px`
+      heroStage.style.height = `${frame.height}px`
     }
 
     function syncHeroFrame() {
@@ -1082,11 +1138,11 @@ const eagerImageCount = 12
       if (!fullSrc) return
 
       const token = ++fullImageToken
-      const fullImage = new Image()
-      fullImage.src = fullSrc
+      fullHero.style.opacity = '0'
+      fullHero.src = fullSrc
 
       try {
-        await fullImage.decode()
+        await fullHero.decode()
       } catch {
         return
       }
@@ -1096,13 +1152,23 @@ const eagerImageCount = 12
         currentIndex === index &&
         !lightbox.hidden
       ) {
-        hero.src = fullSrc
+        // Keep the decoded preview painted underneath. Safari occasionally
+        // drops an image layer while promoting a large replacement bitmap;
+        // using a second, already-decoded DOM image avoids a black frame.
+        requestAnimationFrame(() => {
+          if (token === fullImageToken && currentIndex === index) {
+            fullHero.style.opacity = '1'
+          }
+        })
       }
     }
 
     function prepareHero(index: number) {
       const image = tileImages[index]
       currentIndex = index
+      fullImageToken += 1
+      fullHero.style.opacity = '0'
+      fullHero.removeAttribute('src')
       hero.src = image.currentSrc || image.src
       hero.alt = image.alt
       applyFrame(getTargetFrame(image))
@@ -1141,7 +1207,10 @@ const eagerImageCount = 12
       prepareHero(safeIndex)
 
       const frame = getTargetFrame(sourceImage)
-      hero.style.transformOrigin = '0 0'
+      lightbox.getAnimations().forEach((animation) => animation.cancel())
+      heroStage.getAnimations().forEach((animation) => animation.cancel())
+      heroStage.style.transformOrigin = '0 0'
+      heroStage.style.opacity = '1'
 
       const backdropAnimation = lightbox.animate(
         [{ opacity: 0 }, { opacity: 1 }],
@@ -1153,7 +1222,7 @@ const eagerImageCount = 12
       )
       const sourceRect = sourceImage.getBoundingClientRect()
       const firstTransform = `translate3d(${sourceRect.left - frame.left}px, ${sourceRect.top - frame.top}px, 0) scale(${sourceRect.width / frame.width}, ${sourceRect.height / frame.height})`
-      const imageAnimation = hero.animate(
+      const imageAnimation = heroStage.animate(
         animateFromGrid
           ? [
               { transform: firstTransform },
@@ -1180,7 +1249,10 @@ const eagerImageCount = 12
         backdropAnimation.finished,
         imageAnimation.finished,
       ])
-      hero.style.transform = 'none'
+      heroStage.style.transform = 'none'
+      heroStage.style.opacity = '1'
+      backdropAnimation.cancel()
+      imageAnimation.cancel()
       syncHeroFrame()
       isAnimating = false
       backButton.focus({ preventScroll: true })
@@ -1193,7 +1265,7 @@ const eagerImageCount = 12
       fullImageToken += 1
       const sourceImage = tileImages[currentIndex]
       const sourceRect = sourceImage.getBoundingClientRect()
-      const currentRect = hero.getBoundingClientRect()
+      const currentRect = heroStage.getBoundingClientRect()
       const lastTransform = `translate3d(${sourceRect.left - currentRect.left}px, ${sourceRect.top - currentRect.top}px, 0) scale(${sourceRect.width / currentRect.width}, ${sourceRect.height / currentRect.height})`
       const canFlipToTile =
         animateToGrid &&
@@ -1213,7 +1285,7 @@ const eagerImageCount = 12
           fill: 'both',
         },
       )
-      const imageAnimation = hero.animate(
+      const imageAnimation = heroStage.animate(
         canFlipToTile
           ? [
               { transform: 'translate3d(0, 0, 0) scale(1)' },
@@ -1243,8 +1315,12 @@ const eagerImageCount = 12
       lightbox.hidden = true
       lightbox.setAttribute('aria-hidden', 'true')
       hero.removeAttribute('src')
-      hero.style.transform = 'none'
-      hero.style.opacity = '1'
+      fullHero.removeAttribute('src')
+      fullHero.style.opacity = '0'
+      heroStage.style.transform = 'none'
+      heroStage.style.opacity = '1'
+      backdropAnimation.cancel()
+      imageAnimation.cancel()
       setPageScrollLocked(false)
       setPhotoContext(null)
       currentIndex = -1
@@ -1277,7 +1353,7 @@ const eagerImageCount = 12
       const nextPreviewSrc = nextImage.currentSrc || nextImage.src
       const nextPreviewReady = decodeImageSource(nextPreviewSrc)
 
-      const exitAnimation = hero.animate(
+      const exitAnimation = heroStage.animate(
         [
           { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1)' },
           {
@@ -1302,7 +1378,7 @@ const eagerImageCount = 12
       if (syncHistory) {
         setPhotoUrl(safeIndex, 'replace', canCurrentPhotoReturnToGrid())
       }
-      const enterAnimation = hero.animate(
+      const enterAnimation = heroStage.animate(
         [
           {
             opacity: 0,
@@ -1317,8 +1393,10 @@ const eagerImageCount = 12
         },
       )
       await enterAnimation.finished.catch(() => undefined)
-      hero.style.transform = 'none'
-      hero.style.opacity = '1'
+      heroStage.style.transform = 'none'
+      heroStage.style.opacity = '1'
+      exitAnimation.cancel()
+      enterAnimation.cancel()
       syncHeroFrame()
       isAnimating = false
     }
@@ -1851,15 +1929,29 @@ const eagerImageCount = 12
     display: none;
   }
 
-  .lightbox-image {
+  .lightbox-stage {
     position: fixed;
     z-index: 1;
     display: block;
     max-width: none;
     max-height: none;
-    object-fit: contain;
     user-select: none;
     will-change: transform;
+  }
+
+  .lightbox-image {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    user-select: none;
+  }
+
+  .lightbox-full-image {
+    opacity: 0;
+    transition: opacity 140ms ease-out;
   }
 
   .lightbox-meta {
@@ -1936,6 +2028,15 @@ const eagerImageCount = 12
     .photostream-grid {
       grid-template-columns: repeat(4, minmax(0, 1fr));
       grid-auto-rows: calc((100vw - 9px) * 0.0208333 - 2.75px);
+    }
+  }
+
+  @media (hover: none) and (pointer: coarse) {
+    .photostream-tile:focus,
+    .photostream-tile:focus-visible,
+    .glass-button:focus,
+    .glass-button:focus-visible {
+      outline: none;
     }
   }
 

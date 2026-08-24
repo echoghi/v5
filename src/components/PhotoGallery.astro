@@ -1,6 +1,6 @@
 ---
-import type { ImageMetadata } from 'astro'
 import Icon from '@/components/Icon.astro'
+import type { ImageMetadata } from 'astro'
 import { getFullSizeImages } from '../lib/server-utils'
 
 interface Props {
@@ -115,7 +115,7 @@ const EAGER_COUNT = 15
         <!-- Placeholder (Bottom Layer) -->
         <img
           id="overlay-placeholder"
-          class="absolute inset-0 h-full w-full object-fill transition-opacity duration-300"
+          class="absolute inset-0 h-full w-full object-contain transition-opacity duration-300"
           alt=""
           decoding="sync"
         />
@@ -152,7 +152,13 @@ const EAGER_COUNT = 15
 </div>
 
 <script>
-  function setupDeferredImageLoading(): void {
+  type GalleryWindow = Window & {
+    __photoGalleryController?: AbortController
+  }
+
+  const galleryRuntimeWindow = window as GalleryWindow
+
+  function setupDeferredImageLoading(signal: AbortSignal): void {
     const deferred = document.querySelectorAll(
       'img.gallery-item[data-src]',
     ) as NodeListOf<HTMLImageElement>
@@ -185,9 +191,15 @@ const EAGER_COUNT = 15
     )
 
     deferred.forEach((img) => io.observe(img))
+    signal.addEventListener('abort', () => io.disconnect(), { once: true })
   }
 
   function setupGallery(): void {
+    galleryRuntimeWindow.__photoGalleryController?.abort()
+    const controller = new AbortController()
+    galleryRuntimeWindow.__photoGalleryController = controller
+    const { signal } = controller
+
     const overlay = document.getElementById('gallery-overlay') as HTMLDivElement
     const overlayContainer = document.getElementById(
       'overlay-container',
@@ -235,6 +247,11 @@ const EAGER_COUNT = 15
     let currentIndex = -1
     let navToken = 0
     let inactivityTimer: number | null = null
+    let closeTimer: number | null = null
+    let lockedScrollX = 0
+    let lockedScrollY = 0
+    let pageScrollLocked = false
+    let previousScrollRestoration: History['scrollRestoration'] | null = null
 
     function preloadImage(src: string) {
       const img = new Image()
@@ -243,6 +260,38 @@ const EAGER_COUNT = 15
 
     function getByIndex(index: number) {
       return byIndex.get(((index % totalImages) + totalImages) % totalImages)
+    }
+
+    function setPageScrollLocked(locked: boolean) {
+      if (locked === pageScrollLocked) return
+      pageScrollLocked = locked
+
+      if (locked) {
+        lockedScrollX = window.scrollX
+        lockedScrollY = window.scrollY
+        previousScrollRestoration = history.scrollRestoration
+        history.scrollRestoration = 'manual'
+        document.body.style.position = 'fixed'
+        document.body.style.inset = `${-lockedScrollY}px 0 0 ${-lockedScrollX}px`
+        document.body.style.width = '100%'
+        document.body.style.overflow = 'hidden'
+        return
+      }
+
+      document.body.style.removeProperty('position')
+      document.body.style.removeProperty('inset')
+      document.body.style.removeProperty('width')
+      document.body.style.removeProperty('overflow')
+      window.scrollTo({
+        left: lockedScrollX,
+        top: lockedScrollY,
+        behavior: 'instant',
+      })
+
+      if (previousScrollRestoration) {
+        history.scrollRestoration = previousScrollRestoration
+        previousScrollRestoration = null
+      }
     }
 
     function getOverlaySize(width: number, height: number) {
@@ -270,7 +319,12 @@ const EAGER_COUNT = 15
       const token = ++navToken
 
       const fullSrc = targetImg.dataset.fullsize || ''
-      const placeholderSrc = targetImg.dataset.placeholder || ''
+      const placeholderSrc =
+        targetImg.currentSrc ||
+        targetImg.getAttribute('src') ||
+        targetImg.dataset.src ||
+        targetImg.dataset.placeholder ||
+        ''
       const alt = targetImg.alt
       const hasKnownSize =
         Boolean(targetImg.dataset.fullwidth) &&
@@ -290,59 +344,57 @@ const EAGER_COUNT = 15
       imageStack.style.width = `${finalW}px`
       imageStack.style.height = `${finalH}px`
 
-      // 2. Check for Cache / Preload
-      const imgLoader = new Image()
-      imgLoader.src = fullSrc // Triggers browser cache check
-
-      // Update Alt text immediately
+      // Keep the already-painted grid image underneath the full-size image.
+      // This prevents iOS WebKit from showing the black backdrop while it
+      // creates or recreates a GPU layer for a large decoded bitmap.
       overlayFull.alt = alt
+      overlayFull.style.transition = 'none'
+      overlayFull.style.opacity = '0'
+      overlayFull.onload = null
+      overlayFull.onerror = null
+      overlayFull.removeAttribute('src')
 
-      if (imgLoader.complete) {
-        // --- CACHE HIT: INSTANT SWAP ---
-        overlayFull.style.transition = 'none' // Disable fade
-        overlayFull.src = fullSrc
-        overlayFull.style.opacity = '1'
+      if (placeholderSrc) {
+        overlayPlaceholder.src = placeholderSrc
+        overlayPlaceholder.style.opacity = '1'
+      } else {
         overlayPlaceholder.removeAttribute('src')
         overlayPlaceholder.style.opacity = '0'
-      } else {
-        // --- CACHE MISS: SHOW PLACEHOLDER & LOAD ---
+      }
 
-        // Hide Old Full Image
-        overlayFull.style.transition = 'none'
-        overlayFull.style.opacity = '0'
-        overlayFull.removeAttribute('src')
-
-        if (placeholderSrc) {
-          overlayPlaceholder.src = placeholderSrc
-          overlayPlaceholder.style.opacity = '1'
-        } else {
-          overlayPlaceholder.removeAttribute('src')
-          overlayPlaceholder.style.opacity = '0'
+      async function revealFullImage() {
+        try {
+          await overlayFull.decode()
+        } catch {
+          if (!overlayFull.complete || !overlayFull.naturalWidth) return
         }
 
-        imgLoader.onload = () => {
+        if (token !== navToken || !overlayFull.naturalWidth) return
+
+        if (!hasKnownSize && overlayFull.naturalHeight) {
+          const { width: loadedW, height: loadedH } = getOverlaySize(
+            overlayFull.naturalWidth,
+            overlayFull.naturalHeight,
+          )
+          imageStack.style.width = `${loadedW}px`
+          imageStack.style.height = `${loadedH}px`
+        }
+
+        requestAnimationFrame(() => {
           if (token !== navToken) return
+          overlayFull.style.transition = ''
+          overlayFull.style.opacity = '1'
+        })
+      }
 
-          if (
-            !hasKnownSize &&
-            imgLoader.naturalWidth &&
-            imgLoader.naturalHeight
-          ) {
-            const { width: loadedW, height: loadedH } = getOverlaySize(
-              imgLoader.naturalWidth,
-              imgLoader.naturalHeight,
-            )
-
-            imageStack.style.width = `${loadedW}px`
-            imageStack.style.height = `${loadedH}px`
-          }
-
-          overlayFull.src = fullSrc
-
-          requestAnimationFrame(() => {
-            overlayFull.style.transition = '' // Re-enable CSS transition
-            overlayFull.style.opacity = '1'
-          })
+      if (fullSrc) {
+        overlayFull.onload = () => void revealFullImage()
+        overlayFull.onerror = () => {
+          if (token === navToken) overlayFull.removeAttribute('src')
+        }
+        overlayFull.src = fullSrc
+        if (overlayFull.complete && overlayFull.naturalWidth) {
+          void revealFullImage()
         }
       }
 
@@ -355,7 +407,11 @@ const EAGER_COUNT = 15
 
     function openOverlay(index: number) {
       if (index < 0) return
-      document.body.style.overflow = 'hidden'
+      if (closeTimer !== null) {
+        window.clearTimeout(closeTimer)
+        closeTimer = null
+      }
+      setPageScrollLocked(true)
       overlay.classList.remove('hidden')
       overlay.setAttribute('aria-hidden', 'false')
 
@@ -365,22 +421,23 @@ const EAGER_COUNT = 15
         overlay.classList.remove('opacity-0')
         showButtons()
       })
-
-      document.addEventListener('keydown', onKeyDown)
     }
 
     function closeOverlay() {
+      navToken += 1
       overlay.classList.add('opacity-0')
       overlay.setAttribute('aria-hidden', 'true')
 
-      setTimeout(() => {
+      if (closeTimer !== null) window.clearTimeout(closeTimer)
+      closeTimer = window.setTimeout(() => {
+        closeTimer = null
         overlay.classList.add('hidden')
-        overlayFull.src = ''
-        overlayPlaceholder.src = ''
-        document.body.style.overflow = ''
+        overlayFull.onload = null
+        overlayFull.onerror = null
+        overlayFull.removeAttribute('src')
+        overlayPlaceholder.removeAttribute('src')
+        setPageScrollLocked(false)
       }, 300)
-
-      document.removeEventListener('keydown', onKeyDown)
     }
 
     function showButtons() {
@@ -399,48 +456,86 @@ const EAGER_COUNT = 15
     }
 
     function onKeyDown(e: KeyboardEvent) {
+      if (overlay.classList.contains('hidden')) return
       if (e.key === 'Escape') closeOverlay()
       if (e.key === 'ArrowLeft') showIndex(currentIndex - 1)
       if (e.key === 'ArrowRight') showIndex(currentIndex + 1)
     }
 
-    window.addEventListener('resize', () => {
-      if (!overlay.classList.contains('hidden') && currentIndex !== -1) {
-        showIndex(currentIndex)
-      }
-    })
+    window.addEventListener(
+      'resize',
+      () => {
+        if (!overlay.classList.contains('hidden') && currentIndex !== -1) {
+          showIndex(currentIndex)
+        }
+      },
+      { signal },
+    )
+
+    document.addEventListener('keydown', onKeyDown, { signal })
 
     galleryImages.forEach((img) => {
-      img.addEventListener('click', (e) => {
-        const idx = Number((e.currentTarget as HTMLElement).dataset.index)
-        openOverlay(idx)
-      })
+      img.addEventListener(
+        'click',
+        (e) => {
+          const idx = Number((e.currentTarget as HTMLElement).dataset.index)
+          openOverlay(idx)
+        },
+        { signal },
+      )
     })
 
-    closeButton.addEventListener('click', (e) => {
-      e.stopPropagation()
-      closeOverlay()
-    })
-
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay || e.target === overlayContainer) {
+    closeButton.addEventListener(
+      'click',
+      (e) => {
+        e.stopPropagation()
         closeOverlay()
-      }
-    })
+      },
+      { signal },
+    )
 
-    overlay.addEventListener('mousemove', showButtons)
+    overlay.addEventListener(
+      'click',
+      (e) => {
+        if (e.target === overlay || e.target === overlayContainer) {
+          closeOverlay()
+        }
+      },
+      { signal },
+    )
 
-    prevButton.addEventListener('click', (e) => {
-      e.stopPropagation()
-      showIndex(currentIndex - 1)
-    })
+    overlay.addEventListener('mousemove', showButtons, { signal })
 
-    nextButton.addEventListener('click', (e) => {
-      e.stopPropagation()
-      showIndex(currentIndex + 1)
-    })
+    prevButton.addEventListener(
+      'click',
+      (e) => {
+        e.stopPropagation()
+        showIndex(currentIndex - 1)
+      },
+      { signal },
+    )
 
-    setupDeferredImageLoading()
+    nextButton.addEventListener(
+      'click',
+      (e) => {
+        e.stopPropagation()
+        showIndex(currentIndex + 1)
+      },
+      { signal },
+    )
+
+    signal.addEventListener(
+      'abort',
+      () => {
+        navToken += 1
+        if (closeTimer !== null) window.clearTimeout(closeTimer)
+        if (inactivityTimer !== null) window.clearTimeout(inactivityTimer)
+        setPageScrollLocked(false)
+      },
+      { once: true },
+    )
+
+    setupDeferredImageLoading(signal)
   }
 
   document.addEventListener('astro:page-load', setupGallery)
