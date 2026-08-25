@@ -15,6 +15,23 @@ const { title, description, image } = Astro.props
 <!doctype html>
 <html lang="en" class="photostream-document">
   <head>
+    <script is:inline>
+      if (!window.__photostreamPopstateInterceptorInstalled) {
+        window.__photostreamPopstateInterceptorInstalled = true
+        window.addEventListener('popstate', (event) => {
+          if (
+            !document.querySelector('[data-photostream]') ||
+            !event.state?.__photostream
+          ) {
+            return
+          }
+
+          event.stopImmediatePropagation()
+          window.dispatchEvent(new CustomEvent('photostream:popstate'))
+        })
+      }
+    </script>
+
     <Head
       title={`${title} | ${SITE.TITLE}`}
       description={description}

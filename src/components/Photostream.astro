@@ -1541,21 +1541,9 @@ const eagerImageCount = 12
     }
 
     window.addEventListener(
-      'popstate',
-      (event) => {
-        const state =
-          event.state && typeof event.state === 'object'
-            ? (event.state as PhotostreamHistoryState)
-            : null
-
-        if (!state?.__photostream) return
-
-        // These entries only change photostream UI state. Keep Astro's page
-        // router from fetching and swapping an otherwise identical document.
-        event.stopImmediatePropagation()
-        void handleRouteChange()
-      },
-      { capture: true, signal },
+      'photostream:popstate',
+      () => void handleRouteChange(),
+      { signal },
     )
 
     window.addEventListener(
