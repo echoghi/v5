@@ -21,5 +21,9 @@ const albumArtworkBaseUrl = getPublicMediaUrl('albums') ?? undefined
   description="A continuous stream of travel photos, ordinary days, and one-off frames."
 >
   <Photostream images={images} collectionCount={photoCollections.length} />
-  <MusicPlayer client:only="react" albumArtworkBaseUrl={albumArtworkBaseUrl} />
+  <MusicPlayer
+    client:only="react"
+    transition:persist="photostream-music-player"
+    albumArtworkBaseUrl={albumArtworkBaseUrl}
+  />
 </PhotostreamLayout>

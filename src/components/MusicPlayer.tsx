@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Minus, Pause, Play, Plus, SkipBack, SkipForward } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -56,7 +56,12 @@ function MusicPlayer({
   const [currentSongIndex, setCurrentSongIndex] = useState(0)
   const [hasInteracted, setHasInteracted] = useState(false)
   const [shuffledPlaylist] = useState(() => shufflePlaylist(playlist))
-  const audioRef = useRef<HTMLAudioElement>(null)
+  const [audio] = useState(() => {
+    const element = new Audio()
+    element.preload = 'metadata'
+    return element
+  })
+  const audioRef = useRef(audio)
   const playbackRequestedRef = useRef(false)
   const trackedSongRef = useRef<string | null>(null)
   const {
@@ -67,16 +72,18 @@ function MusicPlayer({
     stopSpectrum,
   } = useAudioSpectrum(audioRef)
 
-  const currentSong =
-    shuffledPlaylist[currentSongIndex] ?? shuffledPlaylist[0]
+  const currentSong = shuffledPlaylist[currentSongIndex] ?? shuffledPlaylist[0]
   const currentSongData = createSongData(currentSong, albumArtworkBaseUrl)
 
-  const handlePlaybackError = (error: unknown) => {
-    playbackRequestedRef.current = false
-    setIsPlaying(false)
-    stopSpectrum()
-    console.warn('Audio playback failed:', error)
-  }
+  const handlePlaybackError = useCallback(
+    (error: unknown) => {
+      playbackRequestedRef.current = false
+      setIsPlaying(false)
+      stopSpectrum()
+      console.warn('Audio playback failed:', error)
+    },
+    [stopSpectrum],
+  )
 
   const playAudio = async () => {
     const audio = audioRef.current
@@ -110,9 +117,9 @@ function MusicPlayer({
     }
   }
 
-  const nextSong = () => {
+  const nextSong = useCallback(() => {
     setCurrentSongIndex((index) => (index + 1) % shuffledPlaylist.length)
-  }
+  }, [shuffledPlaylist.length])
 
   const previousSong = () => {
     setCurrentSongIndex((index) =>
@@ -121,14 +128,66 @@ function MusicPlayer({
   }
 
   useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
+    if (audio.getAttribute('src') === currentSongData.mp3Src) return
 
+    audio.src = currentSongData.mp3Src
     audio.load()
     if (playbackRequestedRef.current) {
       void audio.play().catch(handlePlaybackError)
     }
-  }, [currentSongData.mp3Src])
+  }, [audio, currentSongData.mp3Src, handlePlaybackError])
+
+  useEffect(() => {
+    const handlePlay = () => {
+      playbackRequestedRef.current = true
+      setIsPlaying(true)
+      startSpectrum()
+
+      if (trackedSongRef.current !== currentSongData.id) {
+        trackedSongRef.current = currentSongData.id
+        ;(window as PlausibleWindow).plausible?.('song', {
+          props: {
+            title: currentSongData.title,
+            artist: currentSongData.artist,
+          },
+        })
+      }
+    }
+    const handlePause = () => {
+      setIsPlaying(false)
+      stopSpectrum()
+    }
+    const handleError = () => handlePlaybackError(audio.error)
+
+    audio.addEventListener('play', handlePlay)
+    audio.addEventListener('pause', handlePause)
+    audio.addEventListener('ended', nextSong)
+    audio.addEventListener('error', handleError)
+
+    return () => {
+      audio.removeEventListener('play', handlePlay)
+      audio.removeEventListener('pause', handlePause)
+      audio.removeEventListener('ended', nextSong)
+      audio.removeEventListener('error', handleError)
+    }
+  }, [
+    audio,
+    currentSongData.artist,
+    currentSongData.id,
+    currentSongData.title,
+    handlePlaybackError,
+    nextSong,
+    startSpectrum,
+    stopSpectrum,
+  ])
+
+  useEffect(() => {
+    return () => {
+      audio.pause()
+      audio.removeAttribute('src')
+      audio.load()
+    }
+  }, [audio])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -157,27 +216,6 @@ function MusicPlayer({
     }
 
     setOpen((isOpen) => !isOpen)
-  }
-
-  const handlePlay = () => {
-    playbackRequestedRef.current = true
-    setIsPlaying(true)
-    startSpectrum()
-
-    if (trackedSongRef.current !== currentSongData.id) {
-      trackedSongRef.current = currentSongData.id
-      ;(window as PlausibleWindow).plausible?.('song', {
-        props: {
-          title: currentSongData.title,
-          artist: currentSongData.artist,
-        },
-      })
-    }
-  }
-
-  const handlePause = () => {
-    setIsPlaying(false)
-    stopSpectrum()
   }
 
   const primaryButtonLabel = !hasInteracted
@@ -304,16 +342,6 @@ function MusicPlayer({
             </div>
           </>
         ) : null}
-
-        <audio
-          ref={audioRef}
-          src={currentSongData.mp3Src}
-          preload="metadata"
-          onPlay={handlePlay}
-          onPause={handlePause}
-          onEnded={nextSong}
-          onError={() => handlePlaybackError(audioRef.current?.error)}
-        />
       </div>
     </div>
   )

@@ -44,5 +44,9 @@ const albumArtworkBaseUrl = getPublicMediaUrl('albums') ?? undefined
     collectionCount={photoCollections.length}
     initialPhotoSlug={initialImage.slug}
   />
-  <MusicPlayer client:only="react" albumArtworkBaseUrl={albumArtworkBaseUrl} />
+  <MusicPlayer
+    client:only="react"
+    transition:persist="photostream-music-player"
+    albumArtworkBaseUrl={albumArtworkBaseUrl}
+  />
 </PhotostreamLayout>
