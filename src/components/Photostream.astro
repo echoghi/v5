@@ -335,6 +335,11 @@ const eagerImageCount = 12
         ? 320
         : 480
     const transitionEasing = 'cubic-bezier(0.22, 1, 0.36, 1)'
+    // Chromium renders the original paired backdrop and image animation
+    // smoothly. Safari can stall on the full-viewport opacity animation, so
+    // retain the compatibility path for non-Chromium engines.
+    const useBackdropAnimation =
+      /(?:Chrome|Chromium|Edg|OPR|SamsungBrowser)\//.test(navigator.userAgent)
 
     function waitForAnimation(animation: Animation, duration: number) {
       return new Promise<void>((resolve) => {
@@ -1246,6 +1251,13 @@ const eagerImageCount = 12
       heroStage.style.transformOrigin = shouldFlipFromGrid ? '0 0' : '50% 50%'
       heroStage.style.opacity = '1'
 
+      const backdropAnimation = useBackdropAnimation
+        ? lightbox.animate([{ opacity: 0 }, { opacity: 1 }], {
+            duration: transitionDuration,
+            easing: transitionEasing,
+            fill: 'both',
+          })
+        : null
       const sourceRect = sourceImage.getBoundingClientRect()
       const firstTransform = `translate3d(${sourceRect.left - frame.left}px, ${sourceRect.top - frame.top}px, 0) scale(${sourceRect.width / frame.width}, ${sourceRect.height / frame.height})`
       const imageAnimation = heroStage.animate(
@@ -1271,9 +1283,15 @@ const eagerImageCount = 12
         },
       )
 
-      await waitForAnimation(imageAnimation, transitionDuration)
+      await Promise.all([
+        waitForAnimation(imageAnimation, transitionDuration),
+        ...(backdropAnimation
+          ? [waitForAnimation(backdropAnimation, transitionDuration)]
+          : []),
+      ])
       heroStage.style.transform = 'none'
       heroStage.style.opacity = '1'
+      backdropAnimation?.cancel()
       imageAnimation.cancel()
       syncHeroFrame()
       isAnimating = false
@@ -1300,6 +1318,14 @@ const eagerImageCount = 12
         sourceRect.left < window.innerWidth
       setPhotoDetailsOpen(false)
 
+      const hideDuration = reduceMotion ? 1 : 380
+      const backdropAnimation = useBackdropAnimation
+        ? lightbox.animate([{ opacity: 1 }, { opacity: 0 }], {
+            duration: hideDuration,
+            easing: transitionEasing,
+            fill: 'both',
+          })
+        : null
       const imageAnimation = heroStage.animate(
         canFlipToTile
           ? [
@@ -1317,13 +1343,18 @@ const eagerImageCount = 12
               },
             ],
         {
-          duration: reduceMotion ? 1 : 380,
+          duration: hideDuration,
           easing: transitionEasing,
           fill: 'both',
         },
       )
 
-      await waitForAnimation(imageAnimation, reduceMotion ? 1 : 380)
+      await Promise.all([
+        waitForAnimation(imageAnimation, hideDuration),
+        ...(backdropAnimation
+          ? [waitForAnimation(backdropAnimation, hideDuration)]
+          : []),
+      ])
       lightbox.hidden = true
       lightbox.setAttribute('aria-hidden', 'true')
       photoGrid?.removeAttribute('inert')
@@ -1332,6 +1363,7 @@ const eagerImageCount = 12
       fullHero.style.opacity = '0'
       heroStage.style.transform = 'none'
       heroStage.style.opacity = '1'
+      backdropAnimation?.cancel()
       imageAnimation.cancel()
       setPageScrollLocked(false)
       setPhotoContext(null)
