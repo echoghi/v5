@@ -334,6 +334,21 @@ const eagerImageCount = 12
         ? 320
         : 480
     const transitionEasing = 'cubic-bezier(0.22, 1, 0.36, 1)'
+
+    function waitForAnimation(animation: Animation, duration: number) {
+      return new Promise<void>((resolve) => {
+        let settled = false
+        const finish = () => {
+          if (settled) return
+          settled = true
+          window.clearTimeout(timeoutId)
+          resolve()
+        }
+        const timeoutId = window.setTimeout(finish, duration + 50)
+        void animation.finished.then(finish, finish)
+      })
+    }
+
     let currentIndex = -1
     let opener: HTMLButtonElement | null = null
     let isAnimating = false
@@ -824,6 +839,21 @@ const eagerImageCount = 12
 
       photoDetailsOpen = shouldOpen
       infoButton.setAttribute('aria-expanded', String(shouldOpen))
+      if (targetDetails === photoDetails) {
+        const collection =
+          currentIndex >= 0
+            ? tileImages[currentIndex]?.dataset.collection || 'Photo'
+            : 'Photo'
+        infoButton.setAttribute(
+          'aria-label',
+          `${shouldOpen ? 'Hide' : 'Show'} photo details for ${collection}`,
+        )
+      } else {
+        infoButton.setAttribute(
+          'aria-label',
+          `${shouldOpen ? 'Hide' : 'Show'} photos information`,
+        )
+      }
       contextChevron.classList.toggle('is-open', shouldOpen)
       targetDetails.setAttribute('aria-hidden', String(!shouldOpen))
 
@@ -891,9 +921,9 @@ const eagerImageCount = 12
         contextSurfaceAnimation = surfaceAnimation
         contextDetailsAnimation = detailsAnimation
 
-        void Promise.allSettled([
-          surfaceAnimation.finished,
-          detailsAnimation.finished,
+        void Promise.all([
+          waitForAnimation(surfaceAnimation, 420),
+          waitForAnimation(detailsAnimation, 330),
         ]).then(() => {
           if (contextSurfaceAnimation !== surfaceAnimation) return
           surfaceAnimation.cancel()
@@ -958,9 +988,9 @@ const eagerImageCount = 12
       contextSurfaceAnimation = surfaceAnimation
       contextDetailsAnimation = detailsAnimation
 
-      void Promise.allSettled([
-        surfaceAnimation.finished,
-        detailsAnimation.finished,
+      void Promise.all([
+        waitForAnimation(surfaceAnimation, 360),
+        waitForAnimation(detailsAnimation, 140),
       ]).then(() => {
         if (contextSurfaceAnimation !== surfaceAnimation) return
         targetDetails.hidden = true
@@ -1214,14 +1244,6 @@ const eagerImageCount = 12
       heroStage.style.transformOrigin = shouldFlipFromGrid ? '0 0' : '50% 50%'
       heroStage.style.opacity = '1'
 
-      const backdropAnimation = lightbox.animate(
-        [{ opacity: 0 }, { opacity: 1 }],
-        {
-          duration: transitionDuration,
-          easing: transitionEasing,
-          fill: 'both',
-        },
-      )
       const sourceRect = sourceImage.getBoundingClientRect()
       const firstTransform = `translate3d(${sourceRect.left - frame.left}px, ${sourceRect.top - frame.top}px, 0) scale(${sourceRect.width / frame.width}, ${sourceRect.height / frame.height})`
       const imageAnimation = heroStage.animate(
@@ -1247,13 +1269,9 @@ const eagerImageCount = 12
         },
       )
 
-      await Promise.allSettled([
-        backdropAnimation.finished,
-        imageAnimation.finished,
-      ])
+      await waitForAnimation(imageAnimation, transitionDuration)
       heroStage.style.transform = 'none'
       heroStage.style.opacity = '1'
-      backdropAnimation.cancel()
       imageAnimation.cancel()
       syncHeroFrame()
       isAnimating = false
@@ -1280,14 +1298,6 @@ const eagerImageCount = 12
         sourceRect.left < window.innerWidth
       setPhotoDetailsOpen(false)
 
-      const backdropAnimation = lightbox.animate(
-        [{ opacity: 1 }, { opacity: 0 }],
-        {
-          duration: reduceMotion ? 1 : 380,
-          easing: transitionEasing,
-          fill: 'both',
-        },
-      )
       const imageAnimation = heroStage.animate(
         canFlipToTile
           ? [
@@ -1311,10 +1321,7 @@ const eagerImageCount = 12
         },
       )
 
-      await Promise.allSettled([
-        backdropAnimation.finished,
-        imageAnimation.finished,
-      ])
+      await waitForAnimation(imageAnimation, reduceMotion ? 1 : 380)
       lightbox.hidden = true
       lightbox.setAttribute('aria-hidden', 'true')
       hero.removeAttribute('src')
@@ -1322,7 +1329,6 @@ const eagerImageCount = 12
       fullHero.style.opacity = '0'
       heroStage.style.transform = 'none'
       heroStage.style.opacity = '1'
-      backdropAnimation.cancel()
       imageAnimation.cancel()
       setPageScrollLocked(false)
       setPhotoContext(null)
@@ -1370,7 +1376,7 @@ const eagerImageCount = 12
           fill: 'both',
         },
       )
-      await exitAnimation.finished.catch(() => undefined)
+      await waitForAnimation(exitAnimation, reduceMotion ? 1 : 160)
 
       // The outgoing animation keeps the hero at opacity 0 while the incoming
       // preview decodes. Without this wait, browsers may briefly paint the
@@ -1395,7 +1401,7 @@ const eagerImageCount = 12
           fill: 'both',
         },
       )
-      await enterAnimation.finished.catch(() => undefined)
+      await waitForAnimation(enterAnimation, reduceMotion ? 1 : 260)
       heroStage.style.transform = 'none'
       heroStage.style.opacity = '1'
       exitAnimation.cancel()
