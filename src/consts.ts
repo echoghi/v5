@@ -40,18 +40,8 @@ export const songs: Record<string, Song[]> = {
       id: 'frank-ocean-lost',
       albumArtworkId: 'frank-ocean-channel-orange',
     },
-    {
-      title: 'Something in the Orange',
-      artist: 'Zach Bryan',
-      id: 'zach-bryan-something-in-the-orange',
-    },
   ],
   italy: [
-    {
-      title: 'Mystery of Love',
-      artist: 'Sufjan Stevens',
-      id: 'sufjan-stevens-mystery-of-love',
-    },
     {
       title: 'From Up on Poppy Hill',
       artist: 'Satoshi Takebe',
