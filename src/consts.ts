@@ -2,6 +2,7 @@ export type Song = {
   title: string
   artist: string
   id: string
+  albumArtworkId?: string
 }
 
 export type PlaylistSong = Song & {
@@ -37,6 +38,7 @@ export const songs: Record<string, Song[]> = {
       title: 'Lost',
       artist: 'Frank Ocean',
       id: 'frank-ocean-lost',
+      albumArtworkId: 'frank-ocean-channel-orange',
     },
     {
       title: 'Something in the Orange',
@@ -88,14 +90,64 @@ export const songs: Record<string, Song[]> = {
       id: 'khruangbin-so-we-wont-forget',
     },
     {
-      title: 'Sofia',
-      artist: 'Clairo',
-      id: 'clairo-sofia',
+      title: 'Friday Morning',
+      artist: 'Khruangbin',
+      id: 'khruangbin-friday-morning',
+      albumArtworkId: 'khruangbin-con-todo-el-mundo',
     },
     {
-      title: 'Dreaming',
-      artist: 'Blondie',
-      id: 'blondie-dreaming',
+      title: 'August 10',
+      artist: 'Khruangbin',
+      id: 'khruangbin-august-10',
+      albumArtworkId: 'khruangbin-con-todo-el-mundo',
+    },
+    {
+      title: 'The Long and Winding Road (Instrumental)',
+      artist: 'The Beatles',
+      id: 'the-beatles-the-long-and-winding-road-instrumental',
+      albumArtworkId: 'the-beatles-let-it-be',
+    },
+    {
+      title: 'These Days (Instrumental)',
+      artist: 'Nico',
+      id: 'nico-these-days-instrumental',
+      albumArtworkId: 'nico-chelsea-girl',
+    },
+    {
+      title: "Je t'aime... moi non plus (Instrumental)",
+      artist: 'Serge Gainsbourg',
+      id: 'serge-gainsbourg-je-taime-moi-non-plus-instrumental',
+      albumArtworkId: 'jane-birkin-serge-gainsbourg',
+    },
+    {
+      title: 'Fairy Fountain',
+      artist: 'Koji Kondo',
+      id: 'koji-kondo-fairy-fountain',
+      albumArtworkId: 'koji-kondo-the-legend-of-zelda',
+    },
+    {
+      title: 'Send It On (Instrumental)',
+      artist: "D'Angelo",
+      id: 'dangelo-send-it-on-instrumental',
+      albumArtworkId: 'dangelo-voodoo',
+    },
+    {
+      title: 'Really Love (Instrumental)',
+      artist: "D'Angelo",
+      id: 'dangelo-really-love-instrumental',
+      albumArtworkId: 'dangelo-black-messiah',
+    },
+    {
+      title: 'Spanish Joint (Instrumental)',
+      artist: "D'Angelo",
+      id: 'dangelo-spanish-joint-instrumental',
+      albumArtworkId: 'dangelo-voodoo',
+    },
+    {
+      title: 'Forrest Gump (Instrumental)',
+      artist: 'Frank Ocean',
+      id: 'frank-ocean-forrest-gump-instrumental',
+      albumArtworkId: 'frank-ocean-channel-orange',
     },
     {
       title: 'Ordinary Pleasure',

@@ -419,7 +419,7 @@ For each song, add a square album image:
 
 - **Format:** WebP
 - **Size:** 100 × 100
-- **Filename:** Must match the song `id`
+- **Filename:** Matches `albumArtworkId` when present, otherwise the song `id`
 
 Album artwork must be **uploaded to Cloudflare R2** under a top-level folder named **`albums/`**.
 
@@ -431,7 +431,9 @@ albums/
   toro-y-moi-rose-quartz.webp
 ```
 
-Audio and artwork filenames are derived from the song `id`; missing files will result in a playback error or broken cover respectively.
+Set the same `albumArtworkId` on songs from the same album to reuse one image.
+Audio filenames always use the song `id`; missing files will result in a
+playback error or broken cover respectively.
 
 > **Note:** The `albums/` directory is intentionally preserved by the image upload script and will not be deleted during gallery updates.
 

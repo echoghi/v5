@@ -25,7 +25,7 @@ function createSongData(
   return {
     ...song,
     albumCover: albumArtworkBaseUrl
-      ? `${albumArtworkBaseUrl}/${song.id}.webp`
+      ? `${albumArtworkBaseUrl}/${song.albumArtworkId ?? song.id}.webp`
       : '/static/logo.png',
     mp3Src: `/audio/${song.collectionId}/${song.id}.mp3`,
   }
