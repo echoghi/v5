@@ -219,6 +219,8 @@ const eagerImageCount = 12
 </div>
 
 <script>
+  import { trackPlausibleEvent } from '@/lib/plausible'
+
   type PhotostreamWindow = Window & {
     __photostreamController?: AbortController
     __photostreamGlassCounter?: number
@@ -369,6 +371,17 @@ const eagerImageCount = 12
     let lockedScrollY = 0
     let pageScrollLocked = false
     let previousScrollRestoration: History['scrollRestoration'] | null = null
+
+    function trackPhotoEvent(eventName: string, index: number) {
+      const image = tileImages[index]
+      const slug = image?.dataset.photoSlug
+      if (!slug) return
+
+      trackPlausibleEvent(eventName, {
+        slug,
+        collection: image.dataset.collection || 'Unknown',
+      })
+    }
 
     type LiquidGlassFrame = {
       width: number
@@ -844,6 +857,9 @@ const eagerImageCount = 12
       }
 
       photoDetailsOpen = shouldOpen
+      if (shouldOpen && targetDetails === photoDetails) {
+        trackPhotoEvent('photo details', currentIndex)
+      }
       infoButton.setAttribute('aria-expanded', String(shouldOpen))
       if (targetDetails === photoDetails) {
         const collection =
@@ -1235,6 +1251,7 @@ const eagerImageCount = 12
 
       if (syncHistory) {
         setPhotoUrl(safeIndex, 'push', canReturnToGrid)
+        trackPhotoEvent('photo', safeIndex)
       }
 
       setPhotoDetailsOpen(false)
@@ -1421,6 +1438,7 @@ const eagerImageCount = 12
       prepareHero(safeIndex)
       if (syncHistory) {
         setPhotoUrl(safeIndex, 'replace', canCurrentPhotoReturnToGrid())
+        trackPhotoEvent('photo', safeIndex)
       }
       const enterAnimation = heroStage.animate(
         [

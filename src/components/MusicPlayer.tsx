@@ -10,13 +10,7 @@ import {
 import { SpinningCD } from '@/components/SpinningCD'
 import { ScrollingText } from '@/components/ScrollingText'
 import { SPECTRUM_BAR_COUNT, useAudioSpectrum } from '@/hooks/useAudioSpectrum'
-
-type PlausibleWindow = Window & {
-  plausible?: (
-    eventName: string,
-    options?: { props?: Record<string, string> },
-  ) => void
-}
+import { trackPlausibleEvent } from '@/lib/plausible'
 
 function createSongData(
   song: PlaylistSong,
@@ -145,11 +139,9 @@ function MusicPlayer({
 
       if (trackedSongRef.current !== currentSongData.id) {
         trackedSongRef.current = currentSongData.id
-        ;(window as PlausibleWindow).plausible?.('song', {
-          props: {
-            title: currentSongData.title,
-            artist: currentSongData.artist,
-          },
+        trackPlausibleEvent('song', {
+          title: currentSongData.title,
+          artist: currentSongData.artist,
         })
       }
     }
