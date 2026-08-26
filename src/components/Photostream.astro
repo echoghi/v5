@@ -250,6 +250,7 @@ const eagerImageCount = 12
     const tileImages = photoButtons.map(
       (button) => button.querySelector('img') as HTMLImageElement,
     )
+    const photoGrid = root.querySelector<HTMLElement>('.photostream-grid')
 
     const infoButton = root.querySelector<HTMLButtonElement>(
       '#photostream-info-button',
@@ -1234,6 +1235,7 @@ const eagerImageCount = 12
       setPhotoDetailsOpen(false)
       lightbox.hidden = false
       lightbox.setAttribute('aria-hidden', 'false')
+      photoGrid?.setAttribute('inert', '')
       setPageScrollLocked(true)
       prepareHero(safeIndex)
 
@@ -1324,6 +1326,7 @@ const eagerImageCount = 12
       await waitForAnimation(imageAnimation, reduceMotion ? 1 : 380)
       lightbox.hidden = true
       lightbox.setAttribute('aria-hidden', 'true')
+      photoGrid?.removeAttribute('inert')
       hero.removeAttribute('src')
       fullHero.removeAttribute('src')
       fullHero.style.opacity = '0'
