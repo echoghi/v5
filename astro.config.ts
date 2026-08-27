@@ -32,6 +32,11 @@ const site = DOMAIN
 export default defineConfig({
   site,
 
+  redirects: {
+    '/blog': '/posts',
+    '/blog/[...id]': '/posts/[...id]',
+  },
+
   env: {
     schema: {
       DOMAIN: envField.string({
