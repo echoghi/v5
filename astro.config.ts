@@ -83,7 +83,15 @@ export default defineConfig({
     },
   },
 
-  integrations: [sitemap(), mdx(), react()],
+  integrations: [
+    sitemap({
+      // Album URLs are legacy redirects to the unified photostream, and the
+      // review route is a local-only tool. Neither belongs in search results.
+      filter: (page) => !/^\/photos\/[^/]+\/?$/.test(new URL(page).pathname),
+    }),
+    mdx(),
+    react(),
+  ],
 
   trailingSlash: 'ignore',
 
