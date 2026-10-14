@@ -37,7 +37,10 @@ import Icon from '@/components/Icon.astro'
       root.classList.toggle('dark', nextIsDark)
 
       try {
-        localStorage.setItem('theme', nextIsDark ? 'dark' : 'theme-light')
+        localStorage.setItem(
+          'theme-override',
+          nextIsDark ? 'dark' : 'theme-light',
+        )
       } catch {
         // The class still provides a session-level override if storage is blocked.
       }

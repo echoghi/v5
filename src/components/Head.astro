@@ -59,11 +59,14 @@ const { title, description, image = '/static/twitter-card.png' } = Astro.props
 <script is:inline>
   function setDarkMode(document) {
     const getThemePreference = () => {
-      if (
-        typeof localStorage !== 'undefined' &&
-        localStorage.getItem('theme')
-      ) {
-        return localStorage.getItem('theme')
+      // Only an explicit toggle writes this key, so the OS preference wins by
+      // default. (The old `theme` key was written on every visit, pinning
+      // visitors to whatever their OS used the first time.)
+      try {
+        const override = localStorage.getItem('theme-override')
+        if (override) return override
+      } catch {
+        // Storage can be blocked; fall back to the OS preference.
       }
       return window.matchMedia('(prefers-color-scheme: dark)').matches
         ? 'dark'
@@ -81,17 +84,6 @@ const { title, description, image = '/static/twitter-card.png' } = Astro.props
     requestAnimationFrame(() => {
       document.documentElement.classList.remove('disable-transitions')
     })
-
-    if (typeof localStorage !== 'undefined') {
-      const observer = new MutationObserver(() => {
-        const isDark = document.documentElement.classList.contains('dark')
-        localStorage.setItem('theme', isDark ? 'dark' : 'theme-light')
-      })
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class'],
-      })
-    }
   }
 
   setDarkMode(document)
