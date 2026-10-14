@@ -5,6 +5,7 @@ import Layout from '@/layouts/Layout.astro'
 import { formatDate } from '@/lib/utils'
 import { getImage } from 'astro:assets'
 import { type CollectionEntry, getCollection, render } from 'astro:content'
+import 'katex/dist/katex.min.css' // Only posts render math.
 
 export async function getStaticPaths() {
   const posts = (await getCollection('blog'))
