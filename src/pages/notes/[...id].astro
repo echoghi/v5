@@ -1,0 +1,48 @@
+---
+import Container from '@/components/Container.astro'
+import Icon from '@/components/Icon.astro'
+import Link from '@/components/Link.astro'
+import NoteEntry from '@/components/NoteEntry.astro'
+import Layout from '@/layouts/Layout.astro'
+import {
+  getNoteDescription,
+  getNotes,
+  getNoteTitle,
+  type Note,
+} from '@/lib/content'
+
+export async function getStaticPaths() {
+  const notes = await getNotes()
+  return notes.map((note) => ({ params: { id: note.id }, props: { note } }))
+}
+
+type Props = { note: Note }
+
+const { note } = Astro.props
+const title = getNoteTitle(note)
+---
+
+<Layout
+  title={title}
+  description={getNoteDescription(note)}
+  image={`/og/notes/${note.id}.png`}
+  article={{
+    headline: title,
+    publishedTime: note.data.date,
+    tags: note.data.tags,
+  }}
+>
+  <Container class="flex flex-col gap-10 pt-8 sm:pt-12">
+    <NoteEntry note={note} standalone />
+    <Link
+      href="/notes"
+      class="group flex items-center gap-1.5 self-start border-t border-foreground/10 pt-6 font-sans text-base font-medium text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring sm:text-sm"
+    >
+      <Icon
+        name="lucide:arrow-left"
+        class="size-4 transition-transform group-hover:-translate-x-0.5"
+      />
+      All notes
+    </Link>
+  </Container>
+</Layout>

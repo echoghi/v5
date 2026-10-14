@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { NAV_LINKS } from '@/site.config'
 import { cn } from '@/lib/utils'
-import { Archive, Camera, Home } from 'lucide-react'
+import { Archive, Camera, Home, NotebookPen } from 'lucide-react'
 
 const iconMap = {
   home: () => <Home className="h-5 w-5" />,
   posts: () => <Archive className="h-5 w-5" />,
+  notes: () => <NotebookPen className="h-5 w-5" />,
   photos: () => <Camera className="h-5 w-5" />,
 } as Record<string, () => JSX.Element>
 

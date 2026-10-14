@@ -6,8 +6,9 @@ import Icon from '@/components/Icon.astro'
 import Link from '@/components/Link.astro'
 import Layout from '@/layouts/Layout.astro'
 import { getPhotostreamImages, getRecentPhotos } from '@/lib/server-utils'
+import { formatDate } from '@/lib/utils'
 import { SITE } from '@/site.config'
-import { getCollection } from 'astro:content'
+import { getCollection, getEntry } from 'astro:content'
 
 const allPosts = (await getCollection('blog'))
   .filter((post) => !post.data.draft)
@@ -17,6 +18,8 @@ const latestPosts = allPosts.slice(0, SITE.NUM_POSTS_ON_HOMEPAGE)
 const photos = await getPhotostreamImages(await getCollection('photos'))
 const recentPhotos = getRecentPhotos(photos, SITE.NUM_PHOTOS_ON_HOMEPAGE)
 const placeCount = new Set(photos.map((photo) => photo.location)).size
+
+const now = await getEntry('now', 'index')
 ---
 
 <Layout title="Home" description={SITE.DESCRIPTION}>
@@ -47,6 +50,28 @@ const placeCount = new Set(photos.map((photo) => photo.location)).size
           stream of consciousness.
         </p>
       </div>
+      {
+        now && (
+          <Link
+            href="/now"
+            class="group hover:bg-secondary/25 focus-visible:ring-ring -mx-3 flex items-start gap-3 self-start rounded-xl px-3 py-2 font-sans text-base focus-visible:ring-2 focus-visible:outline-hidden"
+          >
+            <span class="mt-[0.55rem] size-2 shrink-0 rounded-full bg-[var(--flexoki-green-400)] shadow-[0_0_0_4px_color-mix(in_oklab,var(--flexoki-green-400)_20%,transparent)]" />
+            <span class="flex flex-col">
+              <span class="text-pretty">
+                <span class="font-semibold">Now:</span> {now.data.summary}
+              </span>
+              <span class="text-muted-foreground text-sm tabular-nums">
+                Updated {formatDate(now.data.updated)}
+              </span>
+            </span>
+            <Icon
+              name="lucide:chevron-right"
+              class="text-muted-foreground mt-1 size-4 shrink-0 transition-transform group-hover:translate-x-0.5"
+            />
+          </Link>
+        )
+      }
     </section>
     <HomePhotos
       photos={recentPhotos}

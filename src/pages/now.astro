@@ -1,0 +1,44 @@
+---
+import Container from '@/components/Container.astro'
+import Link from '@/components/Link.astro'
+import Layout from '@/layouts/Layout.astro'
+import { formatDate } from '@/lib/utils'
+import { getEntry, render } from 'astro:content'
+
+const now = await getEntry('now', 'index')
+if (!now) throw new Error('Missing src/content/now/index.md')
+const { Content } = await render(now)
+---
+
+<Layout title="Now" description={now.data.summary} image="/og/now.png">
+  <Container class="flex flex-col gap-10 pt-8 sm:pt-12">
+    <header class="flex flex-col gap-2">
+      <h1 class="font-sans text-4xl font-semibold tracking-tight sm:text-5xl">
+        Now
+      </h1>
+      <p class="text-pretty text-lg text-muted-foreground sm:text-xl">
+        What I’m focused on at the moment.
+      </p>
+      <time
+        datetime={now.data.updated.toISOString()}
+        class="pt-1 font-sans text-base tabular-nums text-[oklch(var(--flexoki-tx-3))] sm:text-sm"
+      >
+        Updated {formatDate(now.data.updated)}
+      </time>
+    </header>
+
+    <article
+      class="prose prose-lg prose-flexoki w-full max-w-none text-pretty font-editorial dark:prose-invert prose-headings:font-sans prose-headings:font-semibold"
+    >
+      <Content />
+    </article>
+
+    <p
+      class="border-t border-foreground/10 pt-6 font-sans text-base text-muted-foreground sm:text-sm"
+    >
+      This is a{' '}
+      <Link href="https://nownownow.com/about" external underline>now page</Link
+      >. If you have your own site, you should make one too.
+    </p>
+  </Container>
+</Layout>

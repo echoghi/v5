@@ -1,0 +1,38 @@
+---
+import Container from '@/components/Container.astro'
+import NoteEntry from '@/components/NoteEntry.astro'
+import Layout from '@/layouts/Layout.astro'
+import { getNotes } from '@/lib/content'
+
+const notes = await getNotes()
+---
+
+<Layout
+  title="Notes"
+  description="Short thoughts, links, and snippets that are too small to be a post."
+  image="/og/notes.png"
+>
+  <Container class="flex flex-col gap-10 pt-8 sm:pt-12">
+    <header class="flex flex-col gap-2">
+      <h1 class="font-sans text-4xl font-semibold tracking-tight sm:text-5xl">
+        Notes
+      </h1>
+      <p class="text-pretty text-lg text-muted-foreground sm:text-xl">
+        Short thoughts, links, and snippets that are too small to be a post.
+      </p>
+    </header>
+
+    <ul
+      class="flex flex-col divide-y divide-foreground/10 border-t border-foreground/10"
+      role="list"
+    >
+      {
+        notes.map((note) => (
+          <li class="py-8">
+            <NoteEntry note={note} />
+          </li>
+        ))
+      }
+    </ul>
+  </Container>
+</Layout>

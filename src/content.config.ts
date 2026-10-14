@@ -66,4 +66,24 @@ const photos = defineCollection({
     }),
 })
 
-export const collections = { blog, authors, photos }
+// Short-form writing: a paragraph or two, a link, or a snippet.
+const notes = defineCollection({
+  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/notes' }),
+  schema: z.object({
+    title: z.string().max(60).optional(),
+    date: z.coerce.date(),
+    tags: z.array(z.string()).optional(),
+    draft: z.boolean().optional(),
+  }),
+})
+
+// The /now page. `summary` is the one-liner shown on the homepage.
+const now = defineCollection({
+  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/now' }),
+  schema: z.object({
+    updated: z.coerce.date(),
+    summary: z.string().max(120),
+  }),
+})
+
+export const collections = { blog, authors, photos, notes, now }

@@ -1,0 +1,72 @@
+---
+import Link from '@/components/Link.astro'
+import type { Note } from '@/lib/content'
+import { cn, formatDate } from '@/lib/utils'
+import { render } from 'astro:content'
+
+type Props = {
+  note: Note
+  // On the note's own page the title is the page heading, not a link.
+  standalone?: boolean
+}
+
+const { note, standalone = false } = Astro.props
+const { Content } = await render(note)
+const href = `/notes/${note.id}`
+const date = formatDate(note.data.date)
+---
+
+<article class="flex flex-col gap-3">
+  <header class="flex flex-col gap-1">
+    {
+      standalone
+        ? note.data.title && (
+            <h1 class="font-sans text-4xl font-semibold tracking-tight text-pretty sm:text-5xl">
+              {note.data.title}
+            </h1>
+          )
+        : note.data.title && (
+            <h2 class="font-sans text-xl font-semibold text-pretty">
+              <Link
+                href={href}
+                class="focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-hidden"
+              >
+                {note.data.title}
+              </Link>
+            </h2>
+          )
+    }
+    <div
+      class={cn(
+        'flex flex-wrap items-center gap-x-2 font-sans text-sm tabular-nums text-[oklch(var(--flexoki-tx-3))]',
+        standalone && 'pt-1 text-base sm:text-sm',
+      )}
+    >
+      {
+        standalone ? (
+          <time datetime={note.data.date.toISOString()}>{date}</time>
+        ) : (
+          <Link
+            href={href}
+            class="hover:text-foreground focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-hidden"
+          >
+            <time datetime={note.data.date.toISOString()}>{date}</time>
+          </Link>
+        )
+      }
+      {
+        note.data.tags?.map((tag) => (
+          <>
+            <span aria-hidden="true">·</span>
+            <span>#{tag}</span>
+          </>
+        ))
+      }
+    </div>
+  </header>
+  <div
+    class="prose prose-flexoki max-w-none text-pretty font-editorial text-lg dark:prose-invert"
+  >
+    <Content />
+  </div>
+</article>
