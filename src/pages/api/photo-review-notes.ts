@@ -44,10 +44,12 @@ function json(data: unknown, status = 200) {
   })
 }
 
-function isLocalDevelopment(url: URL) {
+// The dev server listens on the LAN (`server.host: true`), and the Host header
+// is client-controlled, so check the socket's address instead.
+function isLocalDevelopment(clientAddress: string) {
   return (
     import.meta.env.DEV &&
-    ['localhost', '127.0.0.1', '::1'].includes(url.hostname)
+    ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(clientAddress)
   )
 }
 
@@ -73,8 +75,9 @@ async function readManifest(): Promise<PhotoManifest> {
   return parsed as PhotoManifest
 }
 
-export const GET: APIRoute = async ({ url }) => {
-  if (!isLocalDevelopment(url)) return json({ error: 'Not found' }, 404)
+export const GET: APIRoute = async ({ clientAddress }) => {
+  if (!isLocalDevelopment(clientAddress))
+    return json({ error: 'Not found' }, 404)
 
   try {
     return json({ notes: await readNotes() })
@@ -84,8 +87,9 @@ export const GET: APIRoute = async ({ url }) => {
   }
 }
 
-export const POST: APIRoute = async ({ request, url }) => {
-  if (!isLocalDevelopment(url)) return json({ error: 'Not found' }, 404)
+export const POST: APIRoute = async ({ request, clientAddress }) => {
+  if (!isLocalDevelopment(clientAddress))
+    return json({ error: 'Not found' }, 404)
 
   let body: unknown
   try {
@@ -98,10 +102,8 @@ export const POST: APIRoute = async ({ request, url }) => {
     return json({ error: 'Invalid request body' }, 400)
   }
 
-  const { photoKey, note, publicNote, hidden, location, camera } = body as Record<
-    string,
-    unknown
-  >
+  const { photoKey, note, publicNote, hidden, location, camera } =
+    body as Record<string, unknown>
   if (typeof photoKey !== 'string' || !photoKeyPattern.test(photoKey)) {
     return json({ error: 'Invalid photo key' }, 400)
   }

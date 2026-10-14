@@ -45,7 +45,7 @@ const tags = [...tagCounts.keys()].sort((a, b) => {
         tags.map((tag) => (
           <Link
             href={`/tags/${tag}`}
-            class="group flex items-center justify-between gap-4 rounded-2xl border border-foreground/10 px-4 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            class="group flex items-center justify-between gap-4 rounded-2xl border border-foreground/10 px-4 py-4 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
           >
             <span class="font-sans text-base text-foreground">#{tag}</span>
             <span class="rounded-full bg-secondary/55 px-2 py-1 font-sans text-sm text-muted-foreground">

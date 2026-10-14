@@ -41,7 +41,7 @@ export function useAudioSpectrum(audioRef: RefObject<HTMLAudioElement>) {
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null)
-  const frequencyDataRef = useRef<Uint8Array | null>(null)
+  const frequencyDataRef = useRef<Uint8Array<ArrayBuffer> | null>(null)
   const animationFrameRef = useRef<number>()
 
   const resetSpectrum = useCallback(() => {

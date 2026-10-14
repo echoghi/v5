@@ -2,6 +2,7 @@
 export const prerender = false
 
 import MusicPlayer from '@/components/MusicPlayer.tsx'
+import NotFound from '@/components/NotFound.astro'
 import Photostream from '@/components/Photostream.astro'
 import PhotostreamLayout from '@/layouts/PhotostreamLayout.astro'
 import { getPublicMediaUrl } from '@/lib/server-config'
@@ -18,9 +19,19 @@ const sortedPhotoCollections = photoCollections.sort((a, b) => {
 const images = await getPhotostreamImages(sortedPhotoCollections)
 const initialImage = images.find((image) => image.slug === slug)
 
-if (!initialImage) return Astro.redirect('/photos', 302)
+// A real 404 (not a redirect) so crawlers drop removed or mistyped photo URLs.
+// The 404 page is rendered here: on Vercel, Astro leaves an empty 404 body empty.
+if (initialImage) {
+  // Rendering lists every R2 collection, so let Vercel's CDN serve repeat views.
+  Astro.response.headers.set(
+    'Cache-Control',
+    'public, s-maxage=3600, stale-while-revalidate=86400',
+  )
+} else {
+  Astro.response.status = 404
+}
 
-const capturedDate = initialImage.capturedAt?.match(/^\d{4}-\d{2}-\d{2}/)?.[0]
+const capturedDate = initialImage?.capturedAt?.match(/^\d{4}-\d{2}-\d{2}/)?.[0]
 const dateLabel = capturedDate
   ? new Intl.DateTimeFormat('en-US', {
       dateStyle: 'long',
@@ -28,25 +39,32 @@ const dateLabel = capturedDate
     }).format(new Date(`${capturedDate}T00:00:00Z`))
   : 'Photo'
 const title =
-  initialImage.publicNote || `${dateLabel} — ${initialImage.location}`
+  initialImage?.publicNote || `${dateLabel} — ${initialImage?.location}`
 const description =
-  initialImage.publicNote || `${dateLabel} photo from ${initialImage.location}.`
+  initialImage?.publicNote ||
+  `${dateLabel} photo from ${initialImage?.location}.`
 const albumArtworkBaseUrl = getPublicMediaUrl('albums') ?? undefined
 ---
 
-<PhotostreamLayout
-  title={title}
-  description={description}
-  image={initialImage.fullSrc}
->
-  <Photostream
-    images={images}
-    collectionCount={photoCollections.length}
-    initialPhotoSlug={initialImage.slug}
-  />
-  <MusicPlayer
-    client:only="react"
-    transition:persist="photostream-music-player"
-    albumArtworkBaseUrl={albumArtworkBaseUrl}
-  />
-</PhotostreamLayout>
+{
+  initialImage ? (
+    <PhotostreamLayout
+      title={title}
+      description={description}
+      image={initialImage.fullSrc}
+    >
+      <Photostream
+        images={images}
+        collectionCount={photoCollections.length}
+        initialPhotoSlug={initialImage.slug}
+      />
+      <MusicPlayer
+        client:only="react"
+        transition:persist="photostream-music-player"
+        albumArtworkBaseUrl={albumArtworkBaseUrl}
+      />
+    </PhotostreamLayout>
+  ) : (
+    <NotFound />
+  )
+}

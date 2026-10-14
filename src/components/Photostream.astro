@@ -223,6 +223,7 @@ const eagerImageCount = 12
 
   type PhotostreamWindow = Window & {
     __photostreamController?: AbortController
+    __photostreamRoot?: HTMLElement
     __photostreamGlassCounter?: number
     __photostreamListenerInstalled?: boolean
   }
@@ -238,12 +239,19 @@ const eagerImageCount = 12
   const runtimeWindow = window as PhotostreamWindow
 
   function setupPhotostream() {
+    const root = document.querySelector<HTMLElement>('[data-photostream]')
+
+    // On a full load this runs once when the module executes and again on
+    // astro:page-load, which waits for window `load`. Re-running would reset
+    // a deep-linked photo the visitor has already moved away from or closed.
+    if (root && root === runtimeWindow.__photostreamRoot) return
+
     runtimeWindow.__photostreamController?.abort()
     const controller = new AbortController()
     runtimeWindow.__photostreamController = controller
+    runtimeWindow.__photostreamRoot = root ?? undefined
     const { signal } = controller
 
-    const root = document.querySelector<HTMLElement>('[data-photostream]')
     if (!root) return
 
     const photoButtons = Array.from(

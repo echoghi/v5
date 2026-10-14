@@ -3,7 +3,9 @@ import PostNavigation from '@/components/PostNavigation.astro'
 import ScrollTop from '@/components/ScrollTop.astro'
 import Layout from '@/layouts/Layout.astro'
 import { formatDate } from '@/lib/utils'
+import { getImage } from 'astro:assets'
 import { type CollectionEntry, getCollection, render } from 'astro:content'
+import 'katex/dist/katex.min.css' // Only posts render math.
 
 export async function getStaticPaths() {
   const posts = (await getCollection('blog'))
@@ -42,18 +44,29 @@ const prevPost = getPrevPost(currentPostId)
 
 const post = Astro.props
 const { Content } = await render(post)
+
+// Link-preview crawlers fetch og:image as-is, so serve a resized JPEG rather
+// than the original (some covers are 1MB+ PNGs).
+const ogImage = post.data.image
+  ? (await getImage({ src: post.data.image, width: 1200, format: 'jpg' })).src
+  : '/static/1200x630.png'
 ---
 
 <Layout
   title={post.data.title}
   description={post.data.description}
-  image={post.data.image?.src ?? '/static/1200x630.png'}
+  image={ogImage}
+  article={{
+    headline: post.data.title,
+    publishedTime: post.data.date,
+    tags: post.data.tags,
+  }}
 >
   <section
     class="grid grid-cols-[minmax(1rem,1fr)_minmax(0,50rem)_minmax(1rem,1fr)] gap-y-10 pt-8 sm:grid-cols-[minmax(1.5rem,1fr)_minmax(0,50rem)_minmax(1.5rem,1fr)] sm:gap-y-12 sm:pt-12"
   >
     <header
-      class="col-start-2 mx-auto flex w-full max-w-[44rem] flex-col items-start gap-2"
+      class="col-start-2 mx-auto flex w-full max-w-176 flex-col items-start gap-2"
     >
       <h1
         class="text-pretty font-sans text-4xl font-semibold tracking-tight sm:text-5xl"
@@ -74,7 +87,7 @@ const { Content } = await render(post)
     </header>
 
     <article
-      class="post-prose prose prose-lg prose-flexoki col-start-2 mx-auto w-full max-w-[44rem] text-pretty font-editorial dark:prose-invert"
+      class="post-prose prose prose-lg prose-flexoki col-start-2 mx-auto w-full max-w-176 text-pretty font-editorial dark:prose-invert"
     >
       <Content />
     </article>

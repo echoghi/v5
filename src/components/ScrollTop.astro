@@ -21,7 +21,15 @@ import { Button } from '@/components/ui/button'
 </Button>
 
 <script>
+  let controller: AbortController | undefined
+
   document.addEventListener('astro:page-load', () => {
+    // The window outlives client-side navigations, so drop the previous
+    // page's scroll listener before adding one for this page.
+    controller?.abort()
+    controller = new AbortController()
+    const { signal } = controller
+
     const scrollToTopButton = document.getElementById('scroll-to-top')
     const footer = document.querySelector('footer')
 
@@ -30,15 +38,19 @@ import { Button } from '@/components/ui/button'
         window.scrollTo({ top: 0, behavior: 'smooth' })
       })
 
-      window.addEventListener('scroll', () => {
-        const footerRect = footer.getBoundingClientRect()
-        const isFooterVisible = footerRect.top <= window.innerHeight
+      window.addEventListener(
+        'scroll',
+        () => {
+          const footerRect = footer.getBoundingClientRect()
+          const isFooterVisible = footerRect.top <= window.innerHeight
 
-        scrollToTopButton.classList.toggle(
-          'hidden',
-          window.scrollY <= 300 || isFooterVisible,
-        )
-      })
+          scrollToTopButton.classList.toggle(
+            'hidden',
+            window.scrollY <= 300 || isFooterVisible,
+          )
+        },
+        { signal, passive: true },
+      )
     }
   })
 </script>

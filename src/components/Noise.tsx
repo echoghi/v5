@@ -54,7 +54,7 @@ export function NoiseOverlay({ image, className = '' }: NoiseOverlayProps) {
             checked={noiseEnabled}
             onChange={(event) => setNoiseEnabled(event.currentTarget.checked)}
           />
-          <span className="relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent bg-border shadow-sm transition-colors after:block after:h-4 after:w-4 after:rounded-full after:bg-background after:shadow-lg after:transition-transform peer-checked:bg-primary peer-checked:after:translate-x-4 peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background peer-disabled:cursor-not-allowed peer-disabled:opacity-50" />
+          <span className="bg-border after:bg-background peer-checked:bg-primary peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent shadow-xs transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 peer-focus-visible:outline-hidden peer-disabled:cursor-not-allowed peer-disabled:opacity-50 after:block after:h-4 after:w-4 after:rounded-full after:shadow-lg after:transition-transform peer-checked:after:translate-x-4" />
           <span>Noise Overlay</span>
         </label>
 
@@ -83,7 +83,7 @@ export function NoiseOverlay({ image, className = '' }: NoiseOverlayProps) {
               step={0.05}
               disabled={!noiseEnabled}
               aria-label="Base frequency"
-              className="h-10 w-full cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-50"
+              className="accent-primary h-10 w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
             />
             <Button
               type="button"
@@ -124,7 +124,7 @@ export function NoiseOverlay({ image, className = '' }: NoiseOverlayProps) {
               step={0.05}
               disabled={!noiseEnabled}
               aria-label="Opacity"
-              className="h-10 w-full cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-50"
+              className="accent-primary h-10 w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
             />
             <Button
               type="button"

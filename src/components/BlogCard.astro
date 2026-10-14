@@ -1,6 +1,5 @@
 ---
 import Link from '@/components/Link.astro'
-import AvatarComponent from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import VisitorCount from '@/components/VisitorCount.tsx'
 import { pageviewAnalyticsConfig } from '@/lib/server-config'
@@ -25,11 +24,11 @@ const authors = await parseAuthors(entry.data.authors ?? [])
 <article class="not-prose group">
   <Link
     href={`/posts/${entry.id}`}
-    class="grid cursor-pointer gap-5 rounded-[min(1.4vw,1rem)] px-1 py-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[14rem_minmax(0,1fr)] sm:px-2 sm:py-7"
+    class="grid cursor-pointer gap-5 rounded-[min(1.4vw,1rem)] px-1 py-6 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[14rem_minmax(0,1fr)] sm:px-2 sm:py-7"
   >
     {
       entry.data.image && (
-        <div class="self-start overflow-hidden rounded-[min(1.2vw,0.875rem)] bg-secondary/35 outline outline-1 -outline-offset-1 outline-foreground/5">
+        <div class="bg-secondary/35 outline-foreground/5 self-start overflow-hidden rounded-[min(1.2vw,0.875rem)] outline-1 -outline-offset-1 outline-solid">
           <Image
             src={entry.data.image}
             alt=""
@@ -58,7 +57,7 @@ const authors = await parseAuthors(entry.data.authors ?? [])
           }
         </div>
         <h3
-          class="text-balance font-sans text-2xl font-semibold tracking-tight sm:text-[1.7rem]"
+          class="text-balance font-sans text-2xl leading-8 font-semibold tracking-tight sm:text-[1.7rem]"
         >
           {entry.data.title}
         </h3>
@@ -74,12 +73,14 @@ const authors = await parseAuthors(entry.data.authors ?? [])
             <div class="flex flex-wrap items-center gap-2">
               {authors.map((author) => (
                 <div class="flex items-center gap-x-1.5">
-                  <AvatarComponent
-                    client:load
+                  <img
                     src={author.avatar}
-                    alt={author.name}
-                    fallback={author.name[0]}
-                    className="size-5 rounded-full"
+                    alt=""
+                    width="20"
+                    height="20"
+                    loading="lazy"
+                    decoding="async"
+                    class="bg-muted size-5 shrink-0 rounded-full object-cover"
                   />
                   <span>{author.name}</span>
                 </div>

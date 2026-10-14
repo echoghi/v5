@@ -35,13 +35,24 @@ const MobileMenu = ({ currentPath = '/' }: MobileMenuProps) => {
     }
   }, [])
 
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false)
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen])
+
   return (
     <div className="flex flex-col items-center md:hidden">
       <Button
         onClick={toggleMenu}
         variant="ghost"
         size="icon"
-        className="relative z-50 rounded-xl bg-transparent p-1 text-primary focus:outline-none"
+        className="relative z-50 rounded-xl bg-transparent p-1 text-primary focus:outline-hidden"
         aria-label={isOpen ? 'Close menu' : 'Open menu'}
         aria-expanded={isOpen}
       >
@@ -67,13 +78,16 @@ const MobileMenu = ({ currentPath = '/' }: MobileMenuProps) => {
           <div
             className={cn(
               'absolute bottom-2 left-1/2 h-0.5 w-5 -translate-x-1/2 bg-primary transition-transform duration-300',
-              isOpen ? '-translate-y-[6px] -rotate-45' : 'rotate-0',
+              isOpen ? 'translate-y-[-6px] -rotate-45' : 'rotate-0',
             )}
           />
         </div>
       </Button>
 
       <div
+        // The closed panel is only visually hidden, so keep its links out of
+        // the tab order and accessibility tree. (React 18 wants a string.)
+        {...(!isOpen && { inert: '' })}
         className={cn(
           'paper-glass fixed inset-x-0 top-20 z-40 overflow-hidden rounded-2xl p-2 shadow-lg',
           'origin-top transition duration-300 ease-out motion-reduce:transition-none',
@@ -97,7 +111,7 @@ const MobileMenu = ({ currentPath = '/' }: MobileMenuProps) => {
                     : undefined
               }
               className={cn(
-                'flex w-full items-center justify-start gap-3 rounded-xl px-3 py-3 text-base font-medium capitalize text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'flex w-full items-center justify-start gap-3 rounded-xl px-3 py-3 text-base font-medium capitalize text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
                 (item.href === '/'
                   ? currentPath === '/'
                   : currentPath.startsWith(item.href)) &&

@@ -4,7 +4,7 @@ import { Hash } from 'lucide-react'
 import * as React from 'react'
 
 const badgeVariants = cva(
-  'inline-flex items-center gap-1 rounded-full border border-foreground/10 py-1 pl-1.5 pr-2.5 font-sans text-base font-normal text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring sm:text-sm',
+  'inline-flex items-center gap-1 rounded-full border border-foreground/10 py-1 pl-1.5 pr-2.5 font-sans text-base font-normal text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring sm:text-sm',
   {
     variants: {
       variant: {

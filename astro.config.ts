@@ -1,4 +1,4 @@
-import { rehypeHeadingIds } from '@astrojs/markdown-remark'
+import { rehypeHeadingIds, unified } from '@astrojs/markdown-remark'
 import mdx from '@astrojs/mdx'
 import react from '@astrojs/react'
 import sitemap from '@astrojs/sitemap'
@@ -15,6 +15,7 @@ import remarkEmoji from 'remark-emoji'
 import remarkMath from 'remark-math'
 import remarkToc from 'remark-toc'
 import sectionize from '@hbsnow/rehype-sectionize'
+import tailwindcss from '@tailwindcss/vite'
 import { loadEnv } from 'vite'
 
 import vercel from '@astrojs/vercel'
@@ -97,37 +98,39 @@ export default defineConfig({
 
   markdown: {
     syntaxHighlight: false,
-    rehypePlugins: [
-      [
-        rehypeExternalLinks,
-        {
-          target: '_blank',
-          rel: ['nofollow', 'noreferrer', 'noopener'],
-        },
-      ],
-      rehypeHeadingIds,
-      rehypeKatex,
-      // @ts-expect-error Different unified versions expose incompatible plugin types.
-      sectionize,
-      [
-        rehypePrettyCode,
-        {
-          theme: {
-            light: 'github-light-high-contrast',
-            dark: 'github-dark-high-contrast',
+    // MDX inherits these plugins from the processor.
+    processor: unified({
+      rehypePlugins: [
+        [
+          rehypeExternalLinks,
+          {
+            target: '_blank',
+            rel: ['nofollow', 'noreferrer', 'noopener'],
           },
-          transformers: [
-            transformerNotationDiff(),
-            transformerMetaHighlight(),
-            transformerCopyButton({
-              visibility: 'hover',
-              feedbackDuration: 1000,
-            }),
-          ],
-        },
+        ],
+        rehypeHeadingIds,
+        rehypeKatex,
+        sectionize,
+        [
+          rehypePrettyCode,
+          {
+            theme: {
+              light: 'github-light-high-contrast',
+              dark: 'github-dark-high-contrast',
+            },
+            transformers: [
+              transformerNotationDiff(),
+              transformerMetaHighlight(),
+              transformerCopyButton({
+                visibility: 'hover',
+                feedbackDuration: 1000,
+              }),
+            ],
+          },
+        ],
       ],
-    ],
-    remarkPlugins: [remarkToc, remarkMath, remarkEmoji],
+      remarkPlugins: [remarkToc, remarkMath, remarkEmoji],
+    }),
   },
 
   server: {
@@ -136,6 +139,7 @@ export default defineConfig({
   },
 
   vite: {
+    plugins: [tailwindcss()],
     optimizeDeps: {
       include: ['react-dom/client'],
     },
