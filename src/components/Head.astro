@@ -5,15 +5,42 @@ import '../styles/katex.css'
 import { SITE } from '@/site.config'
 import { ClientRouter } from 'astro:transitions'
 
+export type ArticleMeta = {
+  headline: string
+  publishedTime: Date
+  tags?: string[]
+}
+
 interface Props {
   title: string
   description: string
   image?: string
+  article?: ArticleMeta
 }
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? Astro.url)
 
-const { title, description, image = '/static/twitter-card.png' } = Astro.props
+const {
+  title,
+  description,
+  image = '/static/twitter-card.png',
+  article,
+} = Astro.props
+const imageURL = new URL(image, Astro.site ?? Astro.url)
+const siteURL = new URL('/', Astro.site ?? Astro.url)
+
+const jsonLd = article && {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: article.headline,
+  description,
+  image: imageURL.href,
+  datePublished: article.publishedTime.toISOString(),
+  url: canonicalURL.href,
+  mainEntityOfPage: canonicalURL.href,
+  keywords: article.tags,
+  author: { '@type': 'Person', name: SITE.TITLE, url: siteURL.href },
+}
 ---
 
 <meta charset="utf-8" />
@@ -35,19 +62,36 @@ const { title, description, image = '/static/twitter-card.png' } = Astro.props
 <meta name="msapplication-TileColor" content="#121212" />
 <meta name="theme-color" content="#121212" />
 
-<meta property="og:type" content="website" />
+<meta property="og:type" content={article ? 'article' : 'website'} />
 <meta property="og:url" content={canonicalURL} />
 <meta property="og:site_name" content={SITE.TITLE} />
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />
-<meta property="og:image" content={new URL(image, Astro.url)} />
+<meta property="og:image" content={imageURL} />
+{
+  article && (
+    <>
+      <meta
+        property="article:published_time"
+        content={article.publishedTime.toISOString()}
+      />
+      {article.tags?.map((tag) => (
+        <meta property="article:tag" content={tag} />
+      ))}
+      <script
+        is:inline
+        type="application/ld+json"
+        set:html={JSON.stringify(jsonLd).replace(/</g, '\\u003c')}
+      />
+    </>
+  )
+}
 
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:site" content={canonicalURL} />
 <meta property="twitter:url" content={canonicalURL} />
 <meta property="twitter:title" content={title} />
 <meta property="twitter:description" content={description} />
-<meta property="twitter:image" content={new URL(image, Astro.url)} />
+<meta property="twitter:image" content={imageURL} />
 
 <meta
   name="google-site-verification"
