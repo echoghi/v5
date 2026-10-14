@@ -109,7 +109,6 @@ export default defineConfig({
         ],
         rehypeHeadingIds,
         rehypeKatex,
-        // @ts-expect-error Different unified versions expose incompatible plugin types.
         sectionize,
         [
           rehypePrettyCode,
