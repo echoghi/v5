@@ -11,7 +11,7 @@ const { prevPost, nextPost } = Astro.props
   aria-label="Post navigation"
 >
   <Link
-    href={nextPost ? `/posts/${nextPost.id}` : '#'}
+    href={nextPost ? `/posts/${nextPost.id}` : undefined}
     class={cn(
       'group flex min-w-0 items-center justify-start gap-3 rounded-xl px-2 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:pr-6',
       !nextPost && 'pointer-events-none cursor-not-allowed opacity-35',
@@ -34,7 +34,7 @@ const { prevPost, nextPost } = Astro.props
     </div>
   </Link>
   <Link
-    href={prevPost ? `/posts/${prevPost.id}` : '#'}
+    href={prevPost ? `/posts/${prevPost.id}` : undefined}
     class={cn(
       'group flex min-w-0 items-center justify-end gap-3 rounded-xl px-2 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:pl-6',
       !prevPost && 'pointer-events-none cursor-not-allowed opacity-35',

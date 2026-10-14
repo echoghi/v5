@@ -35,6 +35,17 @@ const MobileMenu = ({ currentPath = '/' }: MobileMenuProps) => {
     }
   }, [])
 
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false)
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen])
+
   return (
     <div className="flex flex-col items-center md:hidden">
       <Button
@@ -74,6 +85,9 @@ const MobileMenu = ({ currentPath = '/' }: MobileMenuProps) => {
       </Button>
 
       <div
+        // The closed panel is only visually hidden, so keep its links out of
+        // the tab order and accessibility tree. (React 18 wants a string.)
+        {...(!isOpen && { inert: '' })}
         className={cn(
           'paper-glass fixed inset-x-0 top-20 z-40 overflow-hidden rounded-2xl p-2 shadow-lg',
           'origin-top transition duration-300 ease-out motion-reduce:transition-none',
