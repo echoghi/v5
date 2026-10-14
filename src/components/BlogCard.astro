@@ -1,6 +1,5 @@
 ---
 import Link from '@/components/Link.astro'
-import AvatarComponent from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import VisitorCount from '@/components/VisitorCount.tsx'
 import { pageviewAnalyticsConfig } from '@/lib/server-config'
@@ -74,12 +73,14 @@ const authors = await parseAuthors(entry.data.authors ?? [])
             <div class="flex flex-wrap items-center gap-2">
               {authors.map((author) => (
                 <div class="flex items-center gap-x-1.5">
-                  <AvatarComponent
-                    client:load
+                  <img
                     src={author.avatar}
-                    alt={author.name}
-                    fallback={author.name[0]}
-                    className="size-5 rounded-full"
+                    alt=""
+                    width="20"
+                    height="20"
+                    loading="lazy"
+                    decoding="async"
+                    class="size-5 shrink-0 rounded-full bg-muted object-cover"
                   />
                   <span>{author.name}</span>
                 </div>
