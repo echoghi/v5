@@ -18,7 +18,15 @@ const sortedPhotoCollections = photoCollections.sort((a, b) => {
 const images = await getPhotostreamImages(sortedPhotoCollections)
 const initialImage = images.find((image) => image.slug === slug)
 
-if (!initialImage) return Astro.redirect('/photos', 302)
+// A real 404 (not a redirect) so crawlers drop removed or mistyped photo URLs.
+// Astro fills an empty 404 with the prerendered 404 page.
+if (!initialImage) return new Response(null, { status: 404 })
+
+// Rendering lists every R2 collection, so let Vercel's CDN serve repeat views.
+Astro.response.headers.set(
+  'Cache-Control',
+  'public, s-maxage=3600, stale-while-revalidate=86400',
+)
 
 const capturedDate = initialImage.capturedAt?.match(/^\d{4}-\d{2}-\d{2}/)?.[0]
 const dateLabel = capturedDate
