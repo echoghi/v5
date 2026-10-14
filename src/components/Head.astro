@@ -98,6 +98,31 @@ const jsonLd = article && {
   content="R2IiTJcQOm4D5Pu4KpkKhTDU2EYLLPVhKJsvn_WhXqA"
 />
 
+<script is:inline>
+  // Photostream history entries are handled in-page. This must be registered
+  // before ClientRouter's own popstate listener, which is added on the first
+  // page load whatever that page is, or the router swaps the whole page on
+  // Back/Forward. Capture also runs ahead of target-phase listeners.
+  if (!window.__photostreamPopstateInterceptorInstalled) {
+    window.__photostreamPopstateInterceptorInstalled = true
+    window.addEventListener(
+      'popstate',
+      (event) => {
+        if (
+          !document.querySelector('[data-photostream]') ||
+          !event.state?.__photostream
+        ) {
+          return
+        }
+
+        event.stopImmediatePropagation()
+        window.dispatchEvent(new CustomEvent('photostream:popstate'))
+      },
+      { capture: true },
+    )
+  }
+</script>
+
 <ClientRouter />
 
 <script is:inline>
