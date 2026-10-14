@@ -1,16 +1,16 @@
 ---
+import HomePostCard from '@/components/HomePostCard.astro'
 import PostNavigation from '@/components/PostNavigation.astro'
 import ScrollTop from '@/components/ScrollTop.astro'
 import Layout from '@/layouts/Layout.astro'
-import { formatDate } from '@/lib/utils'
+import { getPosts, getRelatedPosts } from '@/lib/content'
+import { formatDate, readingTime } from '@/lib/utils'
 import { getImage } from 'astro:assets'
-import { type CollectionEntry, getCollection, render } from 'astro:content'
+import { type CollectionEntry, render } from 'astro:content'
 import 'katex/dist/katex.min.css' // Only posts render math.
 
 export async function getStaticPaths() {
-  const posts = (await getCollection('blog'))
-    .filter((post) => !post.data.draft)
-    .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  const posts = await getPosts()
   return posts.map((post) => ({
     params: { id: post.id },
     props: post,
@@ -18,9 +18,7 @@ export async function getStaticPaths() {
 }
 type Props = CollectionEntry<'blog'>
 
-const posts = (await getCollection('blog'))
-  .filter((post) => !post.data.draft)
-  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+const posts = await getPosts()
 
 function getPostIndex(id: string): number {
   return posts.findIndex((post) => post.id === id)
@@ -44,6 +42,7 @@ const prevPost = getPrevPost(currentPostId)
 
 const post = Astro.props
 const { Content } = await render(post)
+const relatedPosts = getRelatedPosts(post, posts)
 
 // Link-preview crawlers fetch og:image as-is, so serve a resized JPEG rather
 // than the original (some covers are 1MB+ PNGs).
@@ -78,12 +77,15 @@ const ogImage = post.data.image
       >
         {post.data.description}
       </p>
-      <time
-        datetime={post.data.date.toISOString()}
-        class="pt-1 font-sans text-base tabular-nums text-[oklch(var(--flexoki-tx-3))] sm:text-sm"
+      <p
+        class="flex flex-wrap items-center gap-x-2 pt-1 font-sans text-base tabular-nums text-[oklch(var(--flexoki-tx-3))] sm:text-sm"
       >
-        {formatDate(post.data.date)}
-      </time>
+        <time datetime={post.data.date.toISOString()}>
+          {formatDate(post.data.date)}
+        </time>
+        <span aria-hidden="true">·</span>
+        <span>{readingTime(post.body ?? '')} read</span>
+      </p>
     </header>
 
     <article
@@ -91,6 +93,23 @@ const ogImage = post.data.image
     >
       <Content />
     </article>
+
+    {
+      relatedPosts.length > 0 && (
+        <section class="border-foreground/10 bg-background/30 col-start-2 mx-auto w-full max-w-176 overflow-hidden rounded-2xl border">
+          <h2 class="px-4 pt-4 pb-2 font-sans text-xl font-semibold sm:px-5 sm:pt-5">
+            Related posts
+          </h2>
+          <ul class="not-prose flex flex-col px-1 pb-1" role="list">
+            {relatedPosts.map((relatedPost) => (
+              <li>
+                <HomePostCard entry={relatedPost} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
 
     <PostNavigation prevPost={prevPost} nextPost={nextPost} />
   </section>
