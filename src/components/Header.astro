@@ -22,7 +22,7 @@ const isActive = (href: string) =>
       <Link
         href="/"
         aria-label="Homepage"
-        class="z-50 flex shrink-0 items-center rounded-xl p-1 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        class="z-50 flex shrink-0 items-center rounded-xl p-1 text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Logo />
       </Link>
@@ -34,7 +34,7 @@ const isActive = (href: string) =>
                 href={item.href}
                 aria-current={isActive(item.href) ? 'page' : undefined}
                 class:list={[
-                  'rounded-xl px-3 py-2 text-sm capitalize text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  'rounded-xl px-3 py-2 text-sm capitalize text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
                   isActive(item.href) && 'bg-secondary/60 text-foreground',
                 ]}
               >

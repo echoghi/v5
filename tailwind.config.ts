@@ -1,8 +1,7 @@
 import type { Config } from 'tailwindcss'
-import defaultTheme from 'tailwindcss/defaultTheme'
 
 const config: Config = {
-  darkMode: ['selector'],
+  darkMode: 'selector',
   content: ['./src/**/*.{astro,md,mdx,ts,tsx}'],
   theme: {
     extend: {
@@ -47,7 +46,17 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['Figtree Variable', 'Geist', ...defaultTheme.fontFamily.sans],
+        sans: [
+          'Figtree Variable',
+          'Geist',
+          'ui-sans-serif',
+          'system-ui',
+          'sans-serif',
+          '"Apple Color Emoji"',
+          '"Segoe UI Emoji"',
+          '"Segoe UI Symbol"',
+          '"Noto Color Emoji"',
+        ],
         display: [
           'Instrument Serif',
           'Iowan Old Style',
@@ -62,7 +71,17 @@ const config: Config = {
           'Times New Roman',
           'serif',
         ],
-        mono: ['Geist Mono', ...defaultTheme.fontFamily.mono],
+        mono: [
+          'Geist Mono',
+          'ui-monospace',
+          'SFMono-Regular',
+          'Menlo',
+          'Monaco',
+          'Consolas',
+          '"Liberation Mono"',
+          '"Courier New"',
+          'monospace',
+        ],
       },
       colors: {
         background: 'oklch(var(--background) / <alpha-value>)',
@@ -109,7 +128,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [require('@tailwindcss/typography'), require('tailwindcss-animate')],
+  plugins: [require('@tailwindcss/typography')],
 }
 
 export default config

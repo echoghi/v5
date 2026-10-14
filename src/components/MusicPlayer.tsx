@@ -217,12 +217,12 @@ function MusicPlayer({
       : 'Expand music player'
 
   return (
-    <div className="fixed bottom-3 left-3 z-[120] text-white [--background:0_0_0] [--foreground:1_0_0] [--muted-foreground:0.78_0_0] sm:bottom-5 sm:left-5">
+    <div className="fixed bottom-3 left-3 z-120 text-white [--background:0_0_0] [--foreground:1_0_0] [--muted-foreground:0.78_0_0] sm:bottom-5 sm:left-5">
       <button
         type="button"
         aria-label={primaryButtonLabel}
         onClick={handlePrimaryButton}
-        className="liquid-glass absolute -right-3 -top-3 z-[2] rounded-full p-2 text-white transition-transform duration-200 hover:scale-105 active:scale-95"
+        className="liquid-glass absolute -right-3 -top-3 z-2 rounded-full p-2 text-white transition-transform duration-200 hover:scale-105 active:scale-95"
       >
         {!hasInteracted ? (
           <Play
