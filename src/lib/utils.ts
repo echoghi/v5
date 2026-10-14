@@ -12,6 +12,8 @@ export function formatDate(date: Date) {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    // Content dates are midnight UTC; local time would show the day before.
+    timeZone: 'UTC',
   }).format(date)
 }
 
