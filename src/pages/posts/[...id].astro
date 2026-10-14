@@ -48,7 +48,7 @@ const relatedPosts = getRelatedPosts(post, posts)
 // than the original (some covers are 1MB+ PNGs).
 const ogImage = post.data.image
   ? (await getImage({ src: post.data.image, width: 1200, format: 'jpg' })).src
-  : '/static/1200x630.png'
+  : `/og/posts/${post.id}.png`
 ---
 
 <Layout

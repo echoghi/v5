@@ -31,6 +31,7 @@
     "@aws-sdk/client-s3": "^3.893.0",
     "@fontsource-variable/figtree": "^5.3.0",
     "@fontsource-variable/source-serif-4": "^5.3.0",
+    "@fontsource/figtree": "^5.3.0",
     "@fontsource/instrument-serif": "^5.3.0",
     "@hbsnow/rehype-sectionize": "^1.0.7",
     "@iconify-json/lucide": "^1.2.4",
@@ -57,6 +58,8 @@
     "remark-emoji": "^5.0.1",
     "remark-math": "^6.0.0",
     "remark-toc": "^9.0.0",
+    "satori": "^0.56.2",
+    "sharp": "^0.35.5",
     "tailwind-merge": "^3.7.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.4.5"
@@ -78,7 +81,8 @@
     "katex": "$katex",
     "@tailwindcss/typography": {
       "postcss-selector-parser": "^7.1.6"
-    }
+    },
+    "fflate": "^0.8.3"
   },
   "prettier": {
     "semi": false,

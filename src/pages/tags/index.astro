@@ -20,7 +20,11 @@ const tags = [...tagCounts.keys()].sort((a, b) => {
 })
 ---
 
-<Layout title="Tags" description="A list of all tags used in posts">
+<Layout
+  title="Tags"
+  description="A list of all tags used in posts"
+  image="/og/tags.png"
+>
   <Container class="flex flex-col gap-10">
     <Breadcrumbs items={[{ label: 'Tags', icon: 'lucide:tags' }]} />
 

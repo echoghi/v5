@@ -22,7 +22,7 @@ const placeCount = new Set(photos.map((photo) => photo.location)).size
 const now = await getEntry('now', 'index')
 ---
 
-<Layout title="Home" description={SITE.DESCRIPTION}>
+<Layout title="Home" description={SITE.DESCRIPTION} image="/og/home.png">
   <Container class="flex flex-col gap-12 sm:gap-16">
     <section class="flex flex-col gap-5 pb-2 pt-8 sm:pt-12">
       <h1

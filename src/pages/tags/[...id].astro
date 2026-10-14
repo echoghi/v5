@@ -36,6 +36,7 @@ export async function getStaticPaths() {
 <Layout
   title={`Posts tagged with "${tag}"`}
   description={`A collection of posts tagged with ${tag}.`}
+  image={`/og/tags/${tag}.png`}
 >
   <Container class="flex flex-col gap-10">
     <Breadcrumbs
