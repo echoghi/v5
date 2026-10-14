@@ -203,3 +203,20 @@ export async function getPhotostreamImages(
 
   return stream
 }
+
+// The newest dated photos, one per capture day so a single outing doesn't
+// fill the whole selection.
+export function getRecentPhotos(images: PhotostreamImage[], limit: number) {
+  const seenDays = new Set<string>()
+
+  return images
+    .filter((image) => image.capturedAt)
+    .sort((a, b) => b.capturedAt!.localeCompare(a.capturedAt!))
+    .filter((image) => {
+      const day = image.capturedAt!.slice(0, 10)
+      if (seenDays.has(day)) return false
+      seenDays.add(day)
+      return true
+    })
+    .slice(0, limit)
+}

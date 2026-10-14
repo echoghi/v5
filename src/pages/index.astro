@@ -1,9 +1,11 @@
 ---
 import Container from '@/components/Container.astro'
+import HomePhotos from '@/components/HomePhotos.astro'
 import HomePostCard from '@/components/HomePostCard.astro'
 import Icon from '@/components/Icon.astro'
 import Link from '@/components/Link.astro'
 import Layout from '@/layouts/Layout.astro'
+import { getPhotostreamImages, getRecentPhotos } from '@/lib/server-utils'
 import { SITE } from '@/site.config'
 import { getCollection } from 'astro:content'
 
@@ -11,6 +13,10 @@ const allPosts = (await getCollection('blog'))
   .filter((post) => !post.data.draft)
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
 const latestPosts = allPosts.slice(0, SITE.NUM_POSTS_ON_HOMEPAGE)
+
+const photos = await getPhotostreamImages(await getCollection('photos'))
+const recentPhotos = getRecentPhotos(photos, SITE.NUM_PHOTOS_ON_HOMEPAGE)
+const placeCount = new Set(photos.map((photo) => photo.location)).size
 ---
 
 <Layout title="Home" description={SITE.DESCRIPTION}>
@@ -42,6 +48,11 @@ const latestPosts = allPosts.slice(0, SITE.NUM_POSTS_ON_HOMEPAGE)
         </p>
       </div>
     </section>
+    <HomePhotos
+      photos={recentPhotos}
+      totalCount={photos.length}
+      placeCount={placeCount}
+    />
     <section
       class="overflow-hidden rounded-2xl border border-foreground/10 bg-background/30"
     >

@@ -1,0 +1,71 @@
+---
+import Icon from '@/components/Icon.astro'
+import type { PhotostreamImage } from '@/lib/server-utils'
+
+type Props = {
+  photos: PhotostreamImage[]
+  totalCount: number
+  placeCount: number
+}
+
+const { photos, totalCount, placeCount } = Astro.props
+
+// Pack the sheet into four columns, always adding to the shortest so every
+// column runs past the fade.
+const columns: PhotostreamImage[][] = [[], [], [], []]
+const columnHeights = [0, 0, 0, 0]
+for (const photo of photos) {
+  const shortest = columnHeights.indexOf(Math.min(...columnHeights))
+  columns[shortest].push(photo)
+  columnHeights[shortest] += photo.height / photo.width
+}
+---
+
+{
+  photos.length > 0 && (
+    <section class="relative overflow-hidden rounded-2xl bg-black text-white">
+      <div class="flex max-h-104 gap-1 overflow-hidden p-1 sm:max-h-120">
+        {columns.map((column, index) => (
+          <ul
+            class:list={[
+              'flex min-w-0 flex-1 flex-col gap-1',
+              index === 3 && 'max-sm:hidden',
+            ]}
+            role="list"
+          >
+            {column.map((photo) => (
+              <li>
+                <a
+                  href={`/photo/${photo.slug}`}
+                  class="block overflow-hidden rounded-lg focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-hidden"
+                >
+                  <img
+                    src={photo.previewSrc}
+                    alt={`Photo from ${photo.location}`}
+                    width={photo.width}
+                    height={photo.height}
+                    loading="lazy"
+                    decoding="async"
+                    class="h-auto w-full opacity-90 transition-opacity hover:opacity-100"
+                  />
+                </a>
+              </li>
+            ))}
+          </ul>
+        ))}
+      </div>
+      <div class="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 bg-linear-to-t from-black via-black/80 to-transparent px-4 pt-28 pb-6 text-center">
+        <p class="font-editorial text-lg text-white/80">
+          {totalCount} photos from {placeCount} places
+        </p>
+        <a
+          href="/photos"
+          class="liquid-glass pointer-events-auto flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-hidden"
+        >
+          Enter the photostream
+          <Icon name="lucide:arrow-right" class="size-4" />
+        </a>
+      </div>
+    </section>
+  )
+}

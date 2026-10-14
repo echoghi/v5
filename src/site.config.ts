@@ -8,6 +8,7 @@ export const SITE = {
   DESCRIPTION:
     'Emile Choghi is a software engineer who specializes in building useful digital experiences.',
   NUM_POSTS_ON_HOMEPAGE: 3,
+  NUM_PHOTOS_ON_HOMEPAGE: 16,
   POSTS_PER_PAGE: 5,
 } as const
 
