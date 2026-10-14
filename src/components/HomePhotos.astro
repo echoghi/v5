@@ -23,7 +23,7 @@ for (const photo of photos) {
 
 {
   photos.length > 0 && (
-    <section class="relative overflow-hidden rounded-2xl bg-black text-white">
+    <section class="relative overflow-hidden rounded-2xl border border-foreground/10 bg-(--sheet) [--sheet:oklch(var(--flexoki-50))] dark:border-transparent dark:[--sheet:#000]">
       <div class="flex max-h-104 gap-1 overflow-hidden p-1 sm:max-h-120">
         {columns.map((column, index) => (
           <ul
@@ -37,7 +37,7 @@ for (const photo of photos) {
               <li>
                 <a
                   href={`/photo/${photo.slug}`}
-                  class="block overflow-hidden rounded-lg bg-white/5 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-hidden"
+                  class="block overflow-hidden rounded-lg bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden"
                 >
                   <img
                     src={photo.previewSrc}
@@ -46,7 +46,7 @@ for (const photo of photos) {
                     height={photo.height}
                     loading="lazy"
                     decoding="async"
-                    class="h-auto w-full opacity-90 transition-opacity hover:opacity-100"
+                    class="h-auto w-full transition-opacity dark:opacity-90 dark:hover:opacity-100"
                   />
                 </a>
               </li>
@@ -54,13 +54,13 @@ for (const photo of photos) {
           </ul>
         ))}
       </div>
-      <div class="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 bg-linear-to-t from-black via-black/80 to-transparent px-4 pt-28 pb-6 text-center">
-        <p class="font-editorial text-lg text-white/80">
+      <div class="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 bg-linear-to-t from-(--sheet) via-(--sheet)/80 to-transparent px-4 pt-28 pb-6 text-center">
+        <p class="font-editorial text-lg text-foreground/80">
           {totalCount} photos from {placeCount} places
         </p>
         <a
           href="/photos"
-          class="liquid-glass pointer-events-auto flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-hidden"
+          class="liquid-glass liquid-glass-adaptive pointer-events-auto flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden"
         >
           Enter the photostream
           <Icon name="lucide:arrow-right" class="size-4" />
