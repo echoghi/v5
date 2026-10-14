@@ -83,7 +83,7 @@ export function NoiseOverlay({ image, className = '' }: NoiseOverlayProps) {
               step={0.05}
               disabled={!noiseEnabled}
               aria-label="Base frequency"
-              className="accent-primary h-10 w-full cursor-pointer bg-[Field] disabled:cursor-not-allowed disabled:opacity-50"
+              className="accent-primary h-10 w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
             />
             <Button
               type="button"
@@ -124,7 +124,7 @@ export function NoiseOverlay({ image, className = '' }: NoiseOverlayProps) {
               step={0.05}
               disabled={!noiseEnabled}
               aria-label="Opacity"
-              className="accent-primary h-10 w-full cursor-pointer bg-[Field] disabled:cursor-not-allowed disabled:opacity-50"
+              className="accent-primary h-10 w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
             />
             <Button
               type="button"
