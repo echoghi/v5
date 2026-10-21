@@ -1,5 +1,6 @@
 ---
 import Icon from '@/components/Icon.astro'
+import { getImagePlaceholder } from '@/lib/image-placeholder'
 import type { PhotostreamImage } from '@/lib/server-utils'
 
 type Props = {
@@ -19,6 +20,16 @@ for (const photo of photos) {
   columns[shortest].push(photo)
   columnHeights[shortest] += photo.height / photo.width
 }
+
+// Blurred previews fill each tile until its photo loads.
+const placeholders = new Map(
+  await Promise.all(
+    photos.map(
+      async (photo) =>
+        [photo.slug, await getImagePlaceholder(photo.previewSrc)] as const,
+    ),
+  ),
+)
 ---
 
 {
@@ -37,8 +48,16 @@ for (const photo of photos) {
               <li>
                 <a
                   href={`/photo/${photo.slug}`}
-                  class="block overflow-hidden rounded-lg bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden"
+                  class="relative block overflow-hidden rounded-lg bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden"
                 >
+                  {placeholders.get(photo.slug) && (
+                    <img
+                      src={placeholders.get(photo.slug)}
+                      alt=""
+                      aria-hidden="true"
+                      class="absolute inset-0 size-full scale-110 object-cover blur-lg dark:opacity-90"
+                    />
+                  )}
                   <img
                     src={photo.previewSrc}
                     alt={`Photo from ${photo.location}`}
@@ -46,7 +65,7 @@ for (const photo of photos) {
                     height={photo.height}
                     loading="lazy"
                     decoding="async"
-                    class="h-auto w-full transition-opacity dark:opacity-90 dark:hover:opacity-100"
+                    class="relative h-auto w-full transition-opacity dark:opacity-90 dark:hover:opacity-100"
                   />
                 </a>
               </li>
