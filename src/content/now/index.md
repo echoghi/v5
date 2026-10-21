@@ -1,20 +1,20 @@
 ---
-updated: 2026-10-14
-summary: Building small products at Renna Labs and sorting through photos from Vietnam and Thailand.
+updated: 2026-10-21
+summary: Building small businesses at Renna Labs and settling into life in Tennessee.
 ---
 
 ## Building
 
-Most of my time goes to [Renna Labs](https://rennalabs.xyz/), where I build SaaS products, directories, and websites. [Cat Cafe Map](https://catcafemap.com/cat-cafes) is one of them.
+Most of my time goes to [Renna Labs](https://rennalabs.xyz/), where I build small businesses on the web. [Cat Cafe Map](https://catcafemap.com/) is one of them.
 
 ## Running
 
-I still run [my age in miles](/posts/birthday-miles) every birthday, so the rest of the year is mostly about staying ready for that one day.
+I haven’t run a marathon since Boston in 2023, but I’m still putting in high mileage every week. I also still run [my age in miles](/posts/birthday-miles) every birthday.
 
-## Photos
+## Living
 
-Earlier this year I spent time in Bangkok and Da Nang. Those photos are in the [photostream](/photos) now.
+I recently moved from California, where I’d lived my entire life, to a suburb of Nashville, Tennessee.
 
-## Listening
+## Traveling
 
-Khruangbin, D’Angelo instrumentals, and Toro y Moi. They’re the same songs that play over the photostream.
+Earlier this year I spent time traveling across Thailand and in Da Nang. Those photos are in the [photostream](/photos) now. I’m planning to go back to Southeast Asia early next year.
