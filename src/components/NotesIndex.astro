@@ -2,9 +2,12 @@
 import Container from '@/components/Container.astro'
 import NoteEntry from '@/components/NoteEntry.astro'
 import Layout from '@/layouts/Layout.astro'
-import { getNotes } from '@/lib/content'
+import type { Note } from '@/lib/content'
 
-const notes = await getNotes()
+// The /notes page, rendered by pages/notes/[...id].astro.
+type Props = { notes: Note[] }
+
+const { notes } = Astro.props
 ---
 
 <Layout

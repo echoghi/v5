@@ -3,6 +3,7 @@ import Container from '@/components/Container.astro'
 import Icon from '@/components/Icon.astro'
 import Link from '@/components/Link.astro'
 import NoteEntry from '@/components/NoteEntry.astro'
+import NotesIndex from '@/components/NotesIndex.astro'
 import Layout from '@/layouts/Layout.astro'
 import {
   getNoteDescription,
@@ -11,38 +12,50 @@ import {
   type Note,
 } from '@/lib/content'
 
+// This route also builds /notes itself (an undefined id), so until a note
+// is published neither the list nor any note page exists.
 export async function getStaticPaths() {
   const notes = await getNotes()
-  return notes.map((note) => ({ params: { id: note.id }, props: { note } }))
+  if (notes.length === 0) return []
+
+  return [
+    { params: { id: undefined }, props: { notes } },
+    ...notes.map((note) => ({ params: { id: note.id }, props: { note } })),
+  ]
 }
 
-type Props = { note: Note }
+type Props = { note: Note; notes?: never } | { note?: never; notes: Note[] }
 
-const { note } = Astro.props
-const title = getNoteTitle(note)
+const { note, notes } = Astro.props
+const title = note ? getNoteTitle(note) : ''
 ---
 
-<Layout
-  title={title}
-  description={getNoteDescription(note)}
-  image={`/og/notes/${note.id}.png`}
-  article={{
-    headline: title,
-    publishedTime: note.data.date,
-    tags: note.data.tags,
-  }}
->
-  <Container class="flex flex-col gap-10 pt-8 sm:pt-12">
-    <NoteEntry note={note} standalone />
-    <Link
-      href="/notes"
-      class="group flex items-center gap-1.5 self-start border-t border-foreground/10 pt-6 font-sans text-base font-medium text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring sm:text-sm"
+{notes && <NotesIndex notes={notes} />}
+{
+  note && (
+    <Layout
+      title={title}
+      description={getNoteDescription(note)}
+      image={`/og/notes/${note.id}.png`}
+      article={{
+        headline: title,
+        publishedTime: note.data.date,
+        tags: note.data.tags,
+      }}
     >
-      <Icon
-        name="lucide:arrow-left"
-        class="size-4 transition-transform group-hover:-translate-x-0.5"
-      />
-      All notes
-    </Link>
-  </Container>
-</Layout>
+      <Container class="flex flex-col gap-10 pt-8 sm:pt-12">
+        <NoteEntry note={note} standalone />
+        <Link
+          href="/notes"
+          class="group border-foreground/10 text-muted-foreground focus-visible:ring-ring flex items-center gap-1.5 self-start border-t pt-6 font-sans text-base font-medium focus-visible:ring-2 focus-visible:outline-hidden sm:text-sm"
+        >
+          <Icon
+            name="lucide:arrow-left"
+            class="size-4 transition-transform group-hover:-translate-x-0.5"
+          />
+          All notes
+        </Link>
+      </Container>
+    </Layout>
+  )
+}

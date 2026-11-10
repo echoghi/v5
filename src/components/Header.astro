@@ -2,19 +2,19 @@
 import Container from '@/components/Container.astro'
 import Link from '@/components/Link.astro'
 import MobileMenu from '@/components/ui/mobile-menu'
+import { getNotes } from '@/lib/content'
 import { NAV_LINKS } from '@/site.config'
 import Logo from './Logo.astro'
 
 const pathname = Astro.url.pathname
+// Notes stay out of the nav until the first one is published.
+const hasNotes = (await getNotes()).length > 0
+const navLinks = NAV_LINKS.filter((item) => item.href !== '/notes' || hasNotes)
 const isActive = (href: string) =>
   href === '/' ? pathname === '/' : pathname.startsWith(href)
 ---
 
-<header
-  class="sticky top-3 z-30"
-  id="main-header"
-  data-scrolled="false"
->
+<header class="sticky top-3 z-30" id="main-header" data-scrolled="false">
   <Container>
     <div
       class="liquid-glass liquid-glass-adaptive site-header-surface mx-auto flex items-center justify-between gap-3 rounded-2xl px-2.5 py-2 sm:px-3"
@@ -29,7 +29,7 @@ const isActive = (href: string) =>
       <div class="flex items-center gap-2">
         <nav class="hidden items-center gap-1 md:flex" aria-label="Primary">
           {
-            NAV_LINKS.map((item) => (
+            navLinks.map((item) => (
               <Link
                 href={item.href}
                 aria-current={isActive(item.href) ? 'page' : undefined}
@@ -43,7 +43,7 @@ const isActive = (href: string) =>
             ))
           }
         </nav>
-        <MobileMenu client:load currentPath={pathname} />
+        <MobileMenu client:load currentPath={pathname} links={navLinks} />
       </div>
     </div>
   </Container>

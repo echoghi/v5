@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { NAV_LINKS } from '@/site.config'
+import { NAV_LINKS, type Link } from '@/site.config'
 import { cn } from '@/lib/utils'
 import { Archive, Camera, Home, NotebookPen } from 'lucide-react'
 
@@ -13,9 +13,13 @@ const iconMap = {
 
 type MobileMenuProps = {
   currentPath?: string
+  links?: Link[]
 }
 
-const MobileMenu = ({ currentPath = '/' }: MobileMenuProps) => {
+const MobileMenu = ({
+  currentPath = '/',
+  links = NAV_LINKS,
+}: MobileMenuProps) => {
   const [isOpen, setIsOpen] = useState(false)
 
   const toggleMenu = () => {
@@ -98,7 +102,7 @@ const MobileMenu = ({ currentPath = '/' }: MobileMenuProps) => {
         )}
       >
         <nav className="flex flex-col gap-1" aria-label="Mobile navigation">
-          {NAV_LINKS.map((item) => (
+          {links.map((item) => (
             <a
               key={item.href}
               href={item.href}
