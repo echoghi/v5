@@ -1,0 +1,446 @@
+---
+import photoPlaces from '@/data/photo-places.json'
+import type { PhotostreamImage } from '@/lib/server-utils'
+import { getEntry } from 'astro:content'
+
+type Props = {
+  photos: PhotostreamImage[]
+}
+
+const { photos } = Astro.props
+
+// One dot per place, linked to the most recent photo taken there. Places
+// without coordinates in src/data/photo-places.json are left off the globe.
+const coordinates: Record<string, number[] | undefined> = photoPlaces
+const places = new Map<
+  string,
+  {
+    name: string
+    latitude: number
+    longitude: number
+    count: number
+    slug: string
+    capturedAt: string
+  }
+>()
+
+for (const photo of photos) {
+  const point = coordinates[photo.location]
+  if (!point) continue
+
+  const place = places.get(photo.location)
+  const capturedAt = photo.capturedAt ?? ''
+  if (!place) {
+    places.set(photo.location, {
+      name: photo.location,
+      latitude: point[0],
+      longitude: point[1],
+      count: 1,
+      slug: photo.slug,
+      capturedAt,
+    })
+    continue
+  }
+
+  place.count += 1
+  if (capturedAt > place.capturedAt) {
+    place.slug = photo.slug
+    place.capturedAt = capturedAt
+  }
+}
+
+const now = await getEntry('now', 'index')
+const home = now?.data.location
+const globe = {
+  places: [...places.values()].map(
+    ({ name, latitude, longitude, count, slug }) => ({
+      name,
+      latitude,
+      longitude,
+      count,
+      slug,
+    }),
+  ),
+  home: home && {
+    name: home.name,
+    latitude: home.latitude,
+    longitude: home.longitude,
+  },
+}
+---
+
+{
+  globe.places.length > 0 && (
+    <section
+      class="border-foreground/10 bg-background/30 overflow-hidden rounded-2xl border"
+      data-photo-globe
+      data-globe={JSON.stringify(globe)}
+    >
+      <div class="flex flex-col items-center gap-2 sm:flex-row sm:gap-6">
+        <div class="flex w-full flex-col gap-3 px-4 pt-4 sm:flex-1 sm:py-5 sm:pr-0 sm:pl-5">
+          <h2 class="font-sans text-2xl font-semibold">Places</h2>
+          <p class="font-editorial text-muted-foreground text-lg text-pretty">
+            Everywhere the photostream has been so far.{' '}
+            <span class="pointer-fine:hidden">Drag to spin, tap a dot.</span>
+            <span class="pointer-coarse:hidden">
+              Drag to spin, click a dot.
+            </span>
+          </p>
+          <div
+            class="flex min-h-12 flex-col justify-center font-sans text-base sm:text-sm"
+            aria-live="polite"
+          >
+            <p class="text-foreground text-pretty" data-globe-name>
+              {globe.places.length} places on the map
+            </p>
+            <a
+              class="text-muted-foreground hover:text-foreground focus-visible:ring-ring w-fit underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:outline-hidden"
+              data-globe-link
+              hidden
+            />
+          </div>
+          <ul
+            class="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 font-sans text-sm"
+            role="list"
+          >
+            <li class="flex items-center gap-2">
+              <span class="size-2 rounded-full bg-[var(--flexoki-orange-400)]" />
+              Photos
+            </li>
+            {globe.home && (
+              <li class="flex items-center gap-2">
+                <span class="now-dot size-2 rounded-full bg-[var(--flexoki-green-400)]" />
+                Home in {globe.home.name}
+              </li>
+            )}
+          </ul>
+        </div>
+        <canvas
+          class="text-foreground mb-2 size-72 shrink-0 cursor-grab touch-pan-y active:cursor-grabbing sm:my-4 sm:mr-4 sm:size-64"
+          role="img"
+          aria-label={`A globe with the ${globe.places.length} places in the photostream`}
+          data-globe-canvas
+        />
+      </div>
+    </section>
+  )
+}
+
+<script>
+  import land from '@/data/globe-land.json'
+  import { navigate } from 'astro:transitions/client'
+
+  type Place = {
+    name: string
+    latitude: number
+    longitude: number
+    count: number
+    slug: string
+  }
+  type GlobeData = {
+    places: Place[]
+    home?: { name: string; latitude: number; longitude: number }
+  }
+  type GlobeWindow = Window & { __globeController?: AbortController }
+
+  const runtimeWindow = window as GlobeWindow
+  const RAD = Math.PI / 180
+  const SPIN_DEGREES_PER_SECOND = 5
+  const RESUME_SPIN_MS = 2500
+  const HIT_RADIUS = { mouse: 10, touch: 18 }
+
+  function setupGlobe() {
+    runtimeWindow.__globeController?.abort()
+    const controller = new AbortController()
+    runtimeWindow.__globeController = controller
+    const { signal } = controller
+
+    const root = document.querySelector<HTMLElement>('[data-photo-globe]')
+    const canvas = root?.querySelector<HTMLCanvasElement>('[data-globe-canvas]')
+    const nameLabel = root?.querySelector<HTMLElement>('[data-globe-name]')
+    const link = root?.querySelector<HTMLAnchorElement>('[data-globe-link]')
+    const context = canvas?.getContext('2d')
+    if (!root || !canvas || !nameLabel || !link || !context) return
+
+    const { places, home } = JSON.parse(root.dataset.globe ?? '{}') as GlobeData
+    const defaultName = nameLabel.textContent
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)')
+
+    // The globe is centered on (centerLatitude, centerLongitude) and starts
+    // looking at home.
+    let centerLongitude = home?.longitude ?? places[0]?.longitude ?? 0
+    let centerLatitude = 20
+    let velocity = 0
+    let size = 0
+    let colors = { land: '', place: '', home: '' }
+    let selected: Place | undefined
+    let hovered: Place | undefined
+    let drag:
+      { x: number; y: number; moved: number; pointerType: string } | undefined
+    let lastInteraction = -Infinity
+    let lastFrame = performance.now()
+    let frame = 0
+    let onScreen = false
+    let visible = false
+
+    const readColors = () => {
+      const styles = getComputedStyle(document.documentElement)
+      colors = {
+        land: getComputedStyle(canvas).color,
+        place: styles.getPropertyValue('--flexoki-orange-400').trim(),
+        home: styles.getPropertyValue('--flexoki-green-400').trim(),
+      }
+    }
+
+    const resize = () => {
+      const ratio = window.devicePixelRatio || 1
+      size = canvas.clientWidth
+      canvas.width = Math.round(size * ratio)
+      canvas.height = Math.round(size * ratio)
+      context.setTransform(ratio, 0, 0, ratio, 0, 0)
+    }
+
+    // Orthographic projection. `depth` is above 0 on the visible side.
+    const project = (latitude: number, longitude: number) => {
+      const phi = latitude * RAD
+      const lambda = (longitude - centerLongitude) * RAD
+      const tilt = centerLatitude * RAD
+      const x = Math.cos(phi) * Math.sin(lambda)
+      const y = Math.sin(phi)
+      const z = Math.cos(phi) * Math.cos(lambda)
+      const radius = size / 2 - 6
+      return {
+        x: size / 2 + x * radius,
+        y: size / 2 - (y * Math.cos(tilt) - z * Math.sin(tilt)) * radius,
+        depth: y * Math.sin(tilt) + z * Math.cos(tilt),
+      }
+    }
+
+    const draw = (time: number) => {
+      context.clearRect(0, 0, size, size)
+      const radius = size / 2 - 6
+
+      context.globalAlpha = 0.08
+      context.fillStyle = colors.land
+      context.beginPath()
+      context.arc(size / 2, size / 2, radius, 0, Math.PI * 2)
+      context.fill()
+
+      for (let index = 0; index < land.length; index += 2) {
+        const point = project(land[index], land[index + 1])
+        if (point.depth <= 0) continue
+        context.globalAlpha = 0.12 + point.depth * 0.45
+        context.fillRect(point.x - 0.7, point.y - 0.7, 1.4, 1.4)
+      }
+
+      context.fillStyle = colors.place
+      for (const place of places) {
+        const point = project(place.latitude, place.longitude)
+        if (point.depth <= 0) continue
+        const active = place === hovered || place === selected
+        context.globalAlpha = 0.35 + point.depth * 0.65
+        context.beginPath()
+        context.arc(point.x, point.y, active ? 4 : 2.4, 0, Math.PI * 2)
+        context.fill()
+        if (active) {
+          context.globalAlpha = 0.35
+          context.beginPath()
+          context.arc(point.x, point.y, 8, 0, Math.PI * 2)
+          context.fill()
+        }
+      }
+
+      if (home) {
+        const point = project(home.latitude, home.longitude)
+        if (point.depth > 0) {
+          const breath = reduceMotion.matches
+            ? 0.5
+            : (Math.sin(time / 500) + 1) / 2
+          context.fillStyle = colors.home
+          context.globalAlpha = 0.3 * (1 - breath) + 0.05
+          context.beginPath()
+          context.arc(point.x, point.y, 4 + breath * 5, 0, Math.PI * 2)
+          context.fill()
+          context.globalAlpha = 1
+          context.beginPath()
+          context.arc(point.x, point.y, 3, 0, Math.PI * 2)
+          context.fill()
+        }
+      }
+
+      context.globalAlpha = 1
+    }
+
+    const tick = (time: number) => {
+      const elapsed = Math.min(0.05, (time - lastFrame) / 1000)
+      lastFrame = time
+
+      if (!drag) {
+        if (Math.abs(velocity) > 0.01) {
+          // Coast after a fling, slowing down.
+          centerLongitude -= velocity
+          velocity *= 0.94
+        } else if (
+          !reduceMotion.matches &&
+          !hovered &&
+          time - lastInteraction > RESUME_SPIN_MS
+        ) {
+          centerLongitude += SPIN_DEGREES_PER_SECOND * elapsed
+        }
+      }
+
+      draw(time)
+      frame = visible ? requestAnimationFrame(tick) : 0
+    }
+
+    const start = () => {
+      if (frame || !visible) return
+      lastFrame = performance.now()
+      frame = requestAnimationFrame(tick)
+    }
+
+    const placeAt = (event: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect()
+      const x = event.clientX - rect.left
+      const y = event.clientY - rect.top
+      const reach =
+        event.pointerType === 'mouse' ? HIT_RADIUS.mouse : HIT_RADIUS.touch
+      let closest: Place | undefined
+      let closestDistance = reach
+
+      for (const place of places) {
+        const point = project(place.latitude, place.longitude)
+        if (point.depth <= 0) continue
+        const distance = Math.hypot(point.x - x, point.y - y)
+        if (distance < closestDistance) {
+          closest = place
+          closestDistance = distance
+        }
+      }
+      return closest
+    }
+
+    const show = (place: Place | undefined) => {
+      const shown = place ?? selected
+      if (!shown) {
+        nameLabel.textContent = defaultName
+        link.hidden = true
+        return
+      }
+      nameLabel.textContent = shown.name
+      link.textContent = `${shown.count} ${shown.count === 1 ? 'photo' : 'photos'} →`
+      link.href = `/photo/${shown.slug}`
+      link.hidden = false
+    }
+
+    canvas.addEventListener(
+      'pointerdown',
+      (event) => {
+        drag = {
+          x: event.clientX,
+          y: event.clientY,
+          moved: 0,
+          pointerType: event.pointerType,
+        }
+        velocity = 0
+        lastInteraction = performance.now()
+        canvas.setPointerCapture(event.pointerId)
+      },
+      { signal },
+    )
+
+    canvas.addEventListener(
+      'pointermove',
+      (event) => {
+        if (drag) {
+          const dx = event.clientX - drag.x
+          const dy = event.clientY - drag.y
+          drag.x = event.clientX
+          drag.y = event.clientY
+          drag.moved += Math.hypot(dx, dy)
+          // Degrees per pixel, so the surface roughly follows the pointer.
+          const scale = 180 / (Math.PI * (size / 2))
+          velocity = dx * scale
+          centerLongitude -= velocity
+          centerLatitude = Math.max(
+            -60,
+            Math.min(60, centerLatitude + dy * scale),
+          )
+          lastInteraction = performance.now()
+          return
+        }
+
+        if (event.pointerType !== 'mouse') return
+        hovered = placeAt(event)
+        canvas.style.cursor = hovered ? 'pointer' : ''
+        show(hovered)
+      },
+      { signal },
+    )
+
+    const endDrag = (event: PointerEvent) => {
+      if (!drag) return
+      const wasTap = drag.moved < 6
+      drag = undefined
+      lastInteraction = performance.now()
+      if (!wasTap) return
+
+      velocity = 0
+      const place = placeAt(event)
+      if (place && event.pointerType === 'mouse') {
+        navigate(`/photo/${place.slug}`)
+        return
+      }
+      // On touch, the first tap picks a place and the link takes you there.
+      selected = place
+      show(place)
+    }
+
+    canvas.addEventListener('pointerup', endDrag, { signal })
+    canvas.addEventListener('pointercancel', () => (drag = undefined), {
+      signal,
+    })
+    canvas.addEventListener(
+      'pointerleave',
+      () => {
+        if (!hovered) return
+        hovered = undefined
+        canvas.style.cursor = ''
+        show(undefined)
+      },
+      { signal },
+    )
+
+    // Only animate while the globe is on screen and the tab is in front.
+    const updateVisibility = () => {
+      visible = onScreen && document.visibilityState === 'visible'
+      if (visible) start()
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      onScreen = entry.isIntersecting
+      updateVisibility()
+    })
+    observer.observe(canvas)
+    document.addEventListener('visibilitychange', updateVisibility, { signal })
+
+    // Follow light and dark mode.
+    const themeObserver = new MutationObserver(readColors)
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    })
+    window.addEventListener('resize', resize, { signal })
+
+    signal.addEventListener('abort', () => {
+      cancelAnimationFrame(frame)
+      observer.disconnect()
+      themeObserver.disconnect()
+    })
+
+    readColors()
+    resize()
+    draw(performance.now())
+  }
+
+  document.addEventListener('astro:page-load', setupGlobe)
+</script>

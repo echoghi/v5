@@ -4,6 +4,7 @@ import HomePhotos from '@/components/HomePhotos.astro'
 import HomePostCard from '@/components/HomePostCard.astro'
 import Icon from '@/components/Icon.astro'
 import Link from '@/components/Link.astro'
+import PhotoGlobe from '@/components/PhotoGlobe.astro'
 import Layout from '@/layouts/Layout.astro'
 import { getPhotostreamImages, getRecentPhotos } from '@/lib/server-utils'
 import { formatDate } from '@/lib/utils'
@@ -54,7 +55,7 @@ const now = await getEntry('now', 'index')
             href="/now"
             class="group hover:bg-secondary/25 focus-visible:ring-ring -mx-3 flex items-start gap-3 self-start rounded-xl px-3 py-2 font-sans text-base focus-visible:ring-2 focus-visible:outline-hidden"
           >
-            <span class="mt-[0.55rem] size-2 shrink-0 rounded-full bg-[var(--flexoki-green-400)] shadow-[0_0_0_4px_color-mix(in_oklab,var(--flexoki-green-400)_20%,transparent)]" />
+            <span class="now-dot mt-[0.55rem] size-2 shrink-0 rounded-full bg-[var(--flexoki-green-400)]" />
             <span class="flex flex-col">
               <span class="text-pretty">
                 <span class="font-semibold">Now:</span> {now.data.summary}
@@ -76,6 +77,7 @@ const now = await getEntry('now', 'index')
       totalCount={photos.length}
       placeCount={placeCount}
     />
+    <PhotoGlobe photos={photos} />
     <section
       class="overflow-hidden rounded-2xl border border-foreground/10 bg-background/30"
     >
