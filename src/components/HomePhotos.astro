@@ -34,7 +34,10 @@ const placeholders = new Map(
 
 {
   photos.length > 0 && (
-    <section class="relative overflow-hidden rounded-2xl border border-foreground/10 bg-(--sheet) [--sheet:oklch(var(--flexoki-50))] dark:border-transparent dark:[--sheet:#000]">
+    <section
+      data-home-photos
+      class="border-foreground/10 relative overflow-hidden rounded-2xl border bg-(--sheet) [--sheet:oklch(var(--flexoki-50))] dark:border-transparent dark:[--sheet:#000]"
+    >
       <div class="flex max-h-104 gap-1 overflow-hidden p-1 sm:max-h-120">
         {columns.map((column, index) => (
           <ul
@@ -43,12 +46,13 @@ const placeholders = new Map(
               index === 3 && 'max-sm:hidden',
             ]}
             role="list"
+            data-sheet-column
           >
             {column.map((photo) => (
               <li>
                 <a
                   href={`/photo/${photo.slug}`}
-                  class="relative block overflow-hidden rounded-lg bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden"
+                  class="bg-foreground/5 focus-visible:ring-ring relative block overflow-hidden rounded-lg focus-visible:ring-2 focus-visible:outline-hidden"
                 >
                   {placeholders.get(photo.slug) && (
                     <img
@@ -74,17 +78,212 @@ const placeholders = new Map(
         ))}
       </div>
       <div class="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 bg-linear-to-t from-(--sheet) via-(--sheet)/80 to-transparent px-4 pt-28 pb-6 text-center">
-        <p class="font-editorial text-lg text-foreground/80">
+        <p class="font-editorial text-foreground/80 text-lg">
           {totalCount} photos from {placeCount} places
         </p>
-        <a
-          href="/photos"
-          class="liquid-glass liquid-glass-adaptive pointer-events-auto flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden"
-        >
-          Enter the photostream
-          <Icon name="lucide:arrow-right" class="size-4" />
-        </a>
+        <div class="pointer-events-auto flex items-center gap-2">
+          <a
+            href="/photos"
+            class="liquid-glass liquid-glass-adaptive text-foreground focus-visible:ring-ring flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:outline-hidden"
+          >
+            Enter the photostream
+            <Icon name="lucide:arrow-right" class="size-4" />
+          </a>
+          <button
+            type="button"
+            class="liquid-glass liquid-glass-adaptive group text-foreground focus-visible:ring-ring flex size-9 cursor-pointer items-center justify-center rounded-full focus-visible:ring-2 focus-visible:outline-hidden disabled:cursor-progress"
+            aria-label="Shuffle photos"
+            title="Shuffle photos"
+            data-sheet-shuffle
+          >
+            <Icon
+              name="lucide:shuffle"
+              class="size-4 transition-transform duration-300 group-hover:rotate-12 group-disabled:animate-pulse"
+            />
+          </button>
+        </div>
       </div>
+      <template data-sheet-tile>
+        <li>
+          <a class="bg-foreground/5 focus-visible:ring-ring relative block overflow-hidden rounded-lg focus-visible:ring-2 focus-visible:outline-hidden">
+            <img
+              decoding="async"
+              class="relative h-auto w-full transition-opacity dark:opacity-90 dark:hover:opacity-100"
+            />
+          </a>
+        </li>
+      </template>
     </section>
   )
 }
+
+<script>
+  // Shuffle deals a fresh hand of photos from the whole stream into the
+  // sheet. New photos load before the old ones leave, so no tile goes blank.
+  type SheetPhoto = {
+    slug: string
+    src: string
+    width: number
+    height: number
+    location: string
+  }
+  type SheetWindow = Window & { __sheetController?: AbortController }
+
+  const runtimeWindow = window as SheetWindow
+  let allPhotos: Promise<SheetPhoto[]> | undefined
+
+  function loadPhotos() {
+    allPhotos ??= fetch('/photos.json').then((response) => {
+      if (!response.ok) throw new Error(`Photos failed with ${response.status}`)
+      return response.json() as Promise<SheetPhoto[]>
+    })
+    allPhotos.catch(() => {
+      allPhotos = undefined
+    })
+    return allPhotos
+  }
+
+  function pickRandom<T>(items: T[], count: number) {
+    const pool = [...items]
+    for (let index = pool.length - 1; index > 0; index -= 1) {
+      const randomIndex = Math.floor(Math.random() * (index + 1))
+      ;[pool[index], pool[randomIndex]] = [pool[randomIndex], pool[index]]
+    }
+    return pool.slice(0, count)
+  }
+
+  function preload(photo: SheetPhoto) {
+    const image = new Image()
+    image.src = photo.src
+    return image.decode().catch(() => undefined)
+  }
+
+  function setupSheet() {
+    runtimeWindow.__sheetController?.abort()
+    const controller = new AbortController()
+    runtimeWindow.__sheetController = controller
+
+    const sheet = document.querySelector<HTMLElement>('[data-home-photos]')
+    const button = sheet?.querySelector<HTMLButtonElement>(
+      '[data-sheet-shuffle]',
+    )
+    const template =
+      sheet?.querySelector<HTMLTemplateElement>('[data-sheet-tile]')
+    const columns = [
+      ...(sheet?.querySelectorAll<HTMLUListElement>('[data-sheet-column]') ??
+        []),
+    ]
+    if (!sheet || !button || !template || columns.length === 0) return
+
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)')
+
+    const createTile = (photo: SheetPhoto) => {
+      const tile = template.content.firstElementChild!.cloneNode(
+        true,
+      ) as HTMLLIElement
+      const link = tile.querySelector('a')!
+      const image = tile.querySelector('img')!
+      link.href = `/photo/${photo.slug}`
+      image.src = photo.src
+      image.alt = `Photo from ${photo.location}`
+      image.width = photo.width
+      image.height = photo.height
+      return tile
+    }
+
+    const shuffle = async () => {
+      button.disabled = true
+      try {
+        const shown = new Set(
+          [
+            ...sheet.querySelectorAll<HTMLAnchorElement>(
+              '[data-sheet-column] a',
+            ),
+          ].map((link) => link.pathname),
+        )
+        const tileCount = sheet.querySelectorAll(
+          '[data-sheet-column] li',
+        ).length
+        const photos = (await loadPhotos()).filter(
+          (photo) => !shown.has(`/photo/${photo.slug}`),
+        )
+        const hand = pickRandom(photos, tileCount)
+        await Promise.all(hand.map(preload))
+        if (controller.signal.aborted) return
+
+        const oldTiles = [
+          ...sheet.querySelectorAll<HTMLElement>('[data-sheet-column] li'),
+        ]
+        await Promise.all(
+          oldTiles.map(
+            (tile, index) =>
+              tile.animate(
+                reduceMotion.matches
+                  ? [{ opacity: 1 }, { opacity: 0 }]
+                  : [
+                      { opacity: 1, transform: 'none' },
+                      { opacity: 0, transform: 'translateY(8px) scale(0.96)' },
+                    ],
+                {
+                  duration: 180,
+                  delay: reduceMotion.matches ? 0 : index * 10,
+                  easing: 'ease-in',
+                  fill: 'forwards',
+                },
+              ).finished,
+          ),
+        )
+        if (controller.signal.aborted) return
+
+        // Same packing as the server: each photo goes to the shortest column.
+        const heights = columns.map(() => 0)
+        const dealt = columns.map(() => [] as HTMLLIElement[])
+        columns.forEach((column) => column.replaceChildren())
+        for (const photo of hand) {
+          const shortest = heights.indexOf(Math.min(...heights))
+          const tile = createTile(photo)
+          columns[shortest].append(tile)
+          dealt[shortest].push(tile)
+          heights[shortest] += photo.height / photo.width
+        }
+
+        // Deal row by row across the columns, like cards onto a table.
+        const rows = Math.max(...dealt.map((column) => column.length))
+        let order = 0
+        for (let row = 0; row < rows; row += 1) {
+          for (const column of dealt) {
+            const tile = column[row]
+            if (!tile) continue
+            const tilt = (Math.random() - 0.5) * 8
+            tile.animate(
+              reduceMotion.matches
+                ? [{ opacity: 0 }, { opacity: 1 }]
+                : [
+                    {
+                      opacity: 0,
+                      transform: `translateY(-20px) rotate(${tilt}deg) scale(1.04)`,
+                    },
+                    { opacity: 1, transform: 'none' },
+                  ],
+              {
+                duration: reduceMotion.matches ? 200 : 460,
+                delay: reduceMotion.matches ? 0 : order * 40,
+                easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+                fill: 'backwards',
+              },
+            )
+            order += 1
+          }
+        }
+      } catch (error) {
+        console.error('Could not shuffle the photos:', error)
+      } finally {
+        button.disabled = false
+      }
+    }
+
+    button.addEventListener('click', shuffle, { signal: controller.signal })
+  }
+
+  document.addEventListener('astro:page-load', setupSheet)
+</script>
