@@ -570,3 +570,60 @@ article figure[data-rehype-pretty-code-figure] pre {
 .gallery-image-zoom-loaded {
   @apply cursor-zoom-out opacity-100;
 }
+
+/* The homepage "now" dot breathes like a status light. */
+.now-dot {
+  --now-dot-ring: color-mix(
+    in oklab,
+    var(--flexoki-green-400) 20%,
+    transparent
+  );
+  box-shadow: 0 0 0 4px var(--now-dot-ring);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .now-dot {
+    animation: now-dot-breathe 3.2s ease-in-out infinite;
+  }
+}
+
+@keyframes now-dot-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px
+      color-mix(in oklab, var(--flexoki-green-400) 26%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 7px
+      color-mix(in oklab, var(--flexoki-green-400) 4%, transparent);
+  }
+}
+
+/* The footer sky: the sun's rays turn slowly and a star twinkles by the moon. */
+@media (prefers-reduced-motion: no-preference) {
+  .sky-rays {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: sky-rays-turn 60s linear infinite;
+  }
+
+  .sky-star {
+    animation: sky-star-twinkle 4s ease-in-out infinite;
+  }
+}
+
+@keyframes sky-rays-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes sky-star-twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}

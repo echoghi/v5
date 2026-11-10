@@ -1,0 +1,122 @@
+---
+import { getEntry } from 'astro:content'
+
+// The sun or moon wherever I am right now, set by `location` on the now page.
+const now = await getEntry('now', 'index')
+const here = now?.data.location
+---
+
+{
+  here && (
+    <p
+      class="text-muted-foreground flex items-center gap-2 text-center text-base sm:text-sm"
+      data-sky
+      data-place={here.name}
+      data-time-zone={here.timeZone}
+      data-latitude={here.latitude}
+      data-longitude={here.longitude}
+    >
+      <svg
+        viewBox="0 0 20 20"
+        class="text-foreground/80 size-4 shrink-0 overflow-visible"
+        aria-hidden="true"
+        data-sky-icon
+      />
+      <span data-sky-text>Currently in {here.name}.</span>
+    </p>
+  )
+}
+
+<script>
+  import {
+    getMoonPath,
+    getMoonPhase,
+    getMoonPhaseName,
+    getSunAltitude,
+  } from '@/lib/sky'
+
+  type SkyWindow = Window & { __skyController?: AbortController }
+
+  const runtimeWindow = window as SkyWindow
+
+  const sun = (color: string) => `
+    <g class="sky-rays" stroke="${color}" stroke-width="1.4" stroke-linecap="round">
+      ${Array.from({ length: 8 }, (_, index) => {
+        const angle = (index * Math.PI) / 4
+        const x1 = 10 + Math.cos(angle) * 6.5
+        const y1 = 10 + Math.sin(angle) * 6.5
+        const x2 = 10 + Math.cos(angle) * 8.5
+        const y2 = 10 + Math.sin(angle) * 8.5
+        return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" />`
+      }).join('')}
+    </g>
+    <circle cx="10" cy="10" r="4.5" style="fill: ${color}" />`
+
+  const horizonSun = (color: string) => `
+    <clipPath id="sky-horizon"><rect x="0" y="0" width="20" height="13.5" /></clipPath>
+    <circle cx="10" cy="13.5" r="5" clip-path="url(#sky-horizon)" style="fill: ${color}" />
+    <line x1="2" y1="13.5" x2="18" y2="13.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.6" />`
+
+  const moon = (phase: number) => `
+    <circle cx="10" cy="10" r="6.5" fill="currentColor" opacity="0.18" />
+    <path d="${getMoonPath(phase, 10, 10, 6.5)}" fill="currentColor" />
+    <circle class="sky-star" cx="18.5" cy="2.5" r="0.9" fill="currentColor" />`
+
+  function setupSky() {
+    runtimeWindow.__skyController?.abort()
+    const controller = new AbortController()
+    runtimeWindow.__skyController = controller
+
+    const sky = document.querySelector<HTMLElement>('[data-sky]')
+    const icon = sky?.querySelector<SVGSVGElement>('[data-sky-icon]')
+    const text = sky?.querySelector<HTMLElement>('[data-sky-text]')
+    if (!sky || !icon || !text) return
+
+    const place = sky.dataset.place ?? ''
+    const latitude = Number(sky.dataset.latitude)
+    const longitude = Number(sky.dataset.longitude)
+    const clock = new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: sky.dataset.timeZone,
+    })
+    const hourOfDay = new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      hourCycle: 'h23',
+      timeZone: sky.dataset.timeZone,
+    })
+
+    const update = () => {
+      const date = new Date()
+      const altitude = getSunAltitude(date, latitude, longitude)
+      const morning = Number(hourOfDay.format(date)) < 12
+      const time = clock.format(date).toLowerCase()
+      let label: string
+      let moment = ''
+
+      if (altitude > 6) {
+        icon.innerHTML = sun('var(--flexoki-yellow-400)')
+        label = `The sun is up in ${place}`
+      } else if (altitude > -6) {
+        icon.innerHTML = horizonSun('var(--flexoki-orange-400)')
+        const event = morning ? 'sunrise' : 'sunset'
+        const before = morning ? altitude < 0 : altitude > 0
+        moment = `, just ${before ? 'before' : 'after'} ${event}`
+        label = `${morning ? 'Sunrise' : 'Sunset'} in ${place}`
+      } else {
+        const phase = getMoonPhase(date)
+        icon.innerHTML = moon(phase)
+        label = `${getMoonPhaseName(phase)} over ${place}`
+      }
+
+      text.textContent = `It’s ${time} in ${place}${moment}.`
+      sky.title = label
+    }
+
+    update()
+    const interval = window.setInterval(update, 30_000)
+    controller.signal.addEventListener('abort', () => clearInterval(interval))
+  }
+
+  document.addEventListener('astro:page-load', setupSky)
+</script>

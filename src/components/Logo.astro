@@ -4,51 +4,54 @@
   role="img"
   viewBox="0 0 84 96"
   class="hover:fill-current/20 size-7 fill-transparent"
+  data-logo
 >
   <title>Logo</title>
   <g transform="translate(-8.000000, -2.000000)">
     <g transform="translate(11.000000, 5.000000)">
-      <g transform="translate(-52, -45) scale(.6)">
-        <line
-          x1="17.392035"
-          y1="0"
-          x2="-17.392035"
-          y2="0"
-          transform="translate(151 123.785918)"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="7"
-          stroke-linecap="round"></line>
-        <line
-          x1="0"
-          y1="-26.214082"
-          x2="0"
-          y2="26.214082"
-          transform="translate(132.607965 150)"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="7"
-          stroke-linecap="round"></line>
-        <line
-          x1="-17.392035"
-          y1="0"
-          x2="17.392035"
-          y2="0"
-          transform="translate(151 150)"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="7"
-          stroke-linecap="round"></line>
-        <line
-          x1="-17.392035"
-          y1="0"
-          x2="17.392035"
-          y2="0"
-          transform="translate(151 176.214082)"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="7"
-          stroke-linecap="round"></line>
+      <g data-logo-mark>
+        <g transform="translate(-52, -45) scale(.6)">
+          <line
+            x1="17.392035"
+            y1="0"
+            x2="-17.392035"
+            y2="0"
+            transform="translate(151 123.785918)"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="7"
+            stroke-linecap="round"></line>
+          <line
+            x1="0"
+            y1="-26.214082"
+            x2="0"
+            y2="26.214082"
+            transform="translate(132.607965 150)"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="7"
+            stroke-linecap="round"></line>
+          <line
+            x1="-17.392035"
+            y1="0"
+            x2="17.392035"
+            y2="0"
+            transform="translate(151 150)"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="7"
+            stroke-linecap="round"></line>
+          <line
+            x1="-17.392035"
+            y1="0"
+            x2="17.392035"
+            y2="0"
+            transform="translate(151 176.214082)"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="7"
+            stroke-linecap="round"></line>
+        </g>
       </g>
       <polygon
         id="Shape"
@@ -60,3 +63,87 @@
     </g>
   </g>
 </svg>
+
+<script>
+  // The logo turns toward the cursor and the E drifts after it, like it's
+  // keeping an eye on you. Mouse and trackpad only, and never with reduced
+  // motion.
+  type LogoWindow = Window & { __logoController?: AbortController }
+
+  const runtimeWindow = window as LogoWindow
+  const MAX_TILT = 14
+  const MAX_DRIFT = 6
+  const IDLE_MS = 4000
+
+  function setupLogo() {
+    runtimeWindow.__logoController?.abort()
+    const controller = new AbortController()
+    runtimeWindow.__logoController = controller
+
+    const logo = document.querySelector<SVGSVGElement>('[data-logo]')
+    const mark = logo?.querySelector<SVGGElement>('[data-logo-mark]')
+    if (!logo || !mark) return
+    if (
+      !matchMedia('(pointer: fine)').matches ||
+      matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return
+    }
+
+    const target = { x: 0, y: 0 }
+    const current = { x: 0, y: 0 }
+    let frame = 0
+    let idleTimer = 0
+
+    const render = () => {
+      current.x += (target.x - current.x) * 0.12
+      current.y += (target.y - current.y) * 0.12
+      logo.style.transform = `perspective(120px) rotateX(${-current.y * MAX_TILT}deg) rotateY(${current.x * MAX_TILT}deg)`
+      mark.style.transform = `translate(${current.x * MAX_DRIFT}px, ${current.y * MAX_DRIFT}px)`
+
+      const settled =
+        Math.abs(target.x - current.x) < 0.001 &&
+        Math.abs(target.y - current.y) < 0.001
+      frame = settled ? 0 : requestAnimationFrame(render)
+    }
+
+    const lookAt = (x: number, y: number) => {
+      target.x = x
+      target.y = y
+      if (!frame) frame = requestAnimationFrame(render)
+    }
+
+    window.addEventListener(
+      'pointermove',
+      (event) => {
+        const rect = logo.getBoundingClientRect()
+        const dx = event.clientX - (rect.left + rect.width / 2)
+        const dy = event.clientY - (rect.top + rect.height / 2)
+        const distance = Math.hypot(dx, dy)
+        // Close by it barely moves; from a couple hundred pixels away it
+        // turns all the way.
+        const reach = Math.min(1, distance / 240)
+        if (distance > 0)
+          lookAt((dx / distance) * reach, (dy / distance) * reach)
+
+        clearTimeout(idleTimer)
+        idleTimer = window.setTimeout(() => lookAt(0, 0), IDLE_MS)
+      },
+      { passive: true, signal: controller.signal },
+    )
+    document.documentElement.addEventListener(
+      'pointerleave',
+      () => lookAt(0, 0),
+      {
+        signal: controller.signal,
+      },
+    )
+
+    controller.signal.addEventListener('abort', () => {
+      cancelAnimationFrame(frame)
+      clearTimeout(idleTimer)
+    })
+  }
+
+  document.addEventListener('astro:page-load', setupLogo)
+</script>

@@ -77,12 +77,19 @@ const notes = defineCollection({
   }),
 })
 
-// The /now page. `summary` is the one-liner shown on the homepage.
+// The /now page. `summary` is the one-liner shown on the homepage, and
+// `location` drives the sky in the footer, so update it when you travel.
 const now = defineCollection({
   loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/now' }),
   schema: z.object({
     updated: z.coerce.date(),
     summary: z.string().max(120),
+    location: z.object({
+      name: z.string(),
+      timeZone: z.string(),
+      latitude: z.number().min(-90).max(90),
+      longitude: z.number().min(-180).max(180),
+    }),
   }),
 })
 
