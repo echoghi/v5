@@ -1,5 +1,6 @@
 ---
-import photoPlaces from '@/data/photo-places.json'
+import placeCoordinates from '@/data/photo-places.json'
+import { getPlaceName, photoPlaces } from '@/lib/photo-places'
 import type { PhotostreamImage } from '@/lib/server-utils'
 import { getEntry } from 'astro:content'
 
@@ -9,118 +10,181 @@ type Props = {
 
 const { photos } = Astro.props
 
-// One dot per place, linked to the most recent photo taken there. Places
-// without coordinates in src/data/photo-places.json are left off the globe.
-const coordinates: Record<string, number[] | undefined> = photoPlaces
-const places = new Map<
-  string,
-  {
-    name: string
-    latitude: number
-    longitude: number
-    count: number
-    slug: string
-    capturedAt: string
-  }
->()
-
+// One dot per place: a photo's own location, or the city or island that
+// src/data/globe-places.json gathers it into. Locations without coordinates
+// in src/data/photo-places.json are left off the globe.
+const coordinates: Record<string, number[] | undefined> = placeCoordinates
+const photosByPlace = new Map<string, PhotostreamImage[]>()
 for (const photo of photos) {
-  const point = coordinates[photo.location]
-  if (!point) continue
-
-  const place = places.get(photo.location)
-  const capturedAt = photo.capturedAt ?? ''
-  if (!place) {
-    places.set(photo.location, {
-      name: photo.location,
-      latitude: point[0],
-      longitude: point[1],
-      count: 1,
-      slug: photo.slug,
-      capturedAt,
-    })
-    continue
-  }
-
-  place.count += 1
-  if (capturedAt > place.capturedAt) {
-    place.slug = photo.slug
-    place.capturedAt = capturedAt
-  }
+  if (!coordinates[photo.location]) continue
+  const place = getPlaceName(photo.location)
+  const taken = photosByPlace.get(place)
+  if (taken) taken.push(photo)
+  else photosByPlace.set(place, [photo])
 }
 
-const now = await getEntry('now', 'index')
-const home = now?.data.location
-const globe = {
-  places: [...places.values()].map(
-    ({ name, latitude, longitude, count, slug }) => ({
+// Each place pins one photo to the globe: the one picked for it in
+// src/data/globe-places.json, or its most recent photo. The order of that
+// file also decides who gets the space first where places sit close together.
+const ranks = new Map(photoPlaces.map((pick, index) => [pick.place, index]))
+const average = (values: number[]) =>
+  Math.round(
+    (values.reduce((sum, value) => sum + value, 0) / values.length) * 100,
+  ) / 100
+
+const places = [...photosByPlace]
+  .map(([name, taken]) => {
+    const pick = photoPlaces[ranks.get(name) ?? -1]
+    const newest = taken.reduce((a, b) =>
+      (b.capturedAt ?? '') > (a.capturedAt ?? '') ? b : a,
+    )
+    const photo =
+      taken.find((candidate) => candidate.manifestKey === pick?.photo) ?? newest
+    // A place that gathers several locations sits where most of its photos
+    // were taken.
+    const points = taken.map((candidate) => coordinates[candidate.location]!)
+
+    return {
       name,
-      latitude,
-      longitude,
-      count,
-      slug,
-    }),
-  ),
-  home: home && {
-    name: home.name,
-    latitude: home.latitude,
-    longitude: home.longitude,
+      label: name.split(',')[0],
+      latitude: average(points.map((point) => point[0])),
+      longitude: average(points.map((point) => point[1])),
+      count: taken.length,
+      slug: photo.slug,
+      src: photo.previewSrc,
+      focus: photo.manifestKey === pick?.photo ? pick.focus : undefined,
+      rank: ranks.get(name) ?? photoPlaces.length,
+    }
+  })
+  .sort(
+    (a, b) =>
+      a.rank - b.rank || b.count - a.count || a.name.localeCompare(b.name),
+  )
+
+const countryCount = new Set(
+  places.map((place) => place.name.split(', ').pop()),
+).size
+
+// The green dot is wherever the now page says I currently am.
+const now = await getEntry('now', 'index')
+const here = now?.data.location
+const globe = {
+  places: places.map(({ name, latitude, longitude, count, slug }) => ({
+    name,
+    latitude,
+    longitude,
+    count,
+    slug,
+  })),
+  here: here && {
+    name: here.name,
+    latitude: here.latitude,
+    longitude: here.longitude,
   },
 }
+
+// A slight, fixed lean for each print so they look dropped onto the globe.
+const tilt = (index: number) => ((index * 37) % 13) - 6
 ---
 
 {
-  globe.places.length > 0 && (
+  places.length > 0 && (
     <section
-      class="border-foreground/10 bg-background/30 overflow-hidden rounded-2xl border"
+      class="border-foreground/10 bg-background/30 flex flex-col overflow-hidden rounded-2xl border sm:flex-row-reverse"
       data-photo-globe
       data-globe={JSON.stringify(globe)}
     >
-      <div class="flex flex-col items-center gap-2 sm:flex-row sm:gap-6">
-        <div class="flex w-full flex-col gap-3 px-4 pt-4 sm:flex-1 sm:py-5 sm:pr-0 sm:pl-5">
-          <h2 class="font-sans text-2xl font-semibold">Places</h2>
-          <p class="font-editorial text-muted-foreground text-lg text-pretty">
-            Everywhere the photostream has been so far.{' '}
-            <span class="pointer-fine:hidden">Drag to spin, tap a dot.</span>
-            <span class="pointer-coarse:hidden">
-              Drag to spin, click a dot.
-            </span>
+      <div class="flex flex-col justify-center gap-3 px-4 pt-4 pb-4 sm:w-[42%] sm:px-5 sm:py-5">
+        <h2 class="font-sans text-2xl font-semibold">Places</h2>
+        <p class="font-editorial text-muted-foreground text-lg text-pretty">
+          Everywhere the photostream has been so far.{' '}
+          <span class="pointer-fine:hidden">Drag to spin, tap a photo.</span>
+          <span class="pointer-coarse:hidden">
+            Drag to spin, click a photo.
+          </span>
+        </p>
+        <div
+          class="flex min-h-12 flex-col justify-center font-sans text-base sm:text-sm"
+          aria-live="polite"
+        >
+          <p class="text-foreground text-pretty" data-globe-name>
+            {places.length} places in {countryCount}{' '}
+            {countryCount === 1 ? 'country' : 'countries'}
           </p>
-          <div
-            class="flex min-h-12 flex-col justify-center font-sans text-base sm:text-sm"
-            aria-live="polite"
-          >
-            <p class="text-foreground text-pretty" data-globe-name>
-              {globe.places.length} places on the map
-            </p>
-            <a
-              class="text-muted-foreground hover:text-foreground focus-visible:ring-ring w-fit underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:outline-hidden"
-              data-globe-link
-              hidden
-            />
-          </div>
-          <ul
-            class="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 font-sans text-sm"
-            role="list"
-          >
-            <li class="flex items-center gap-2">
-              <span class="size-2 rounded-full bg-[var(--flexoki-orange-400)]" />
-              Photos
-            </li>
-            {globe.home && (
-              <li class="flex items-center gap-2">
-                <span class="now-dot size-2 rounded-full bg-[var(--flexoki-green-400)]" />
-                Home in {globe.home.name}
-              </li>
-            )}
-          </ul>
+          <a
+            class="text-muted-foreground hover:text-foreground focus-visible:ring-ring w-fit underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:outline-hidden"
+            data-globe-link
+            hidden
+          />
         </div>
-        <canvas
-          class="text-foreground mb-2 size-72 shrink-0 cursor-grab touch-pan-y active:cursor-grabbing sm:my-4 sm:mr-4 sm:size-64"
-          role="img"
-          aria-label={`A globe with the ${globe.places.length} places in the photostream`}
-          data-globe-canvas
-        />
+        <ul
+          class="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 font-sans text-sm"
+          role="list"
+        >
+          <li class="flex items-center gap-2">
+            <span class="size-2 rounded-full bg-[var(--flexoki-blue-400)]" />
+            Photos
+          </li>
+          {globe.here && (
+            <li class="flex items-center gap-2">
+              <span class="now-dot size-2 rounded-full bg-[var(--flexoki-green-400)]" />
+              Currently in {globe.here.name}
+            </li>
+          )}
+        </ul>
+      </div>
+      <div
+        class="border-foreground/10 bg-foreground/[0.03] @container relative h-72 cursor-grab touch-pan-y overflow-clip border-t select-none active:cursor-grabbing sm:h-84 sm:flex-1 sm:border-t-0 sm:border-r"
+        data-globe-pane
+      >
+        {/* The globe is larger than its pane, so only a corner of it shows. */}
+        <div
+          class="absolute top-6 left-6 aspect-square w-[min(150%,40rem)] -translate-x-[6%] -translate-y-[6%]"
+          data-globe-box
+        >
+          <div class="bg-background absolute inset-[6%] rounded-full shadow-[0_0_0_1px_oklch(var(--foreground)/0.1),0_0_3.5rem_oklch(var(--foreground)/0.16),inset_0_0_5rem_oklch(var(--foreground)/0.07)]" />
+          <canvas
+            class="text-foreground absolute inset-0 block size-full"
+            role="img"
+            aria-label={`A globe with the ${places.length} places in the photostream`}
+            data-globe-canvas
+          />
+          <div class="pointer-events-none absolute inset-0">
+            {places.map((place, index) => (
+              <a
+                href={`/photo/${place.slug}`}
+                class="group/print focus-visible:ring-ring pointer-events-auto invisible absolute top-0 left-0 -mt-[29px] -ml-6 block h-[58px] w-12 cursor-pointer outline-hidden transition-[visibility] duration-300 hover:z-10 focus-visible:z-10 focus-visible:ring-2 data-shown:visible @sm:-mt-[35px] @sm:-ml-[29px] @sm:h-[70px] @sm:w-[58px]"
+                style={`--tilt:${tilt(index)}deg`}
+                draggable="false"
+                aria-label={`${place.label}: ${place.count} ${place.count === 1 ? 'photo' : 'photos'}`}
+                data-globe-print={index}
+              >
+                <span class="block size-full scale-75 opacity-0 transition-[opacity,scale] duration-300 ease-out group-data-shown/print:scale-100 group-data-shown/print:opacity-100 motion-reduce:scale-100">
+                  {place.count > 1 && (
+                    <span class="absolute inset-0 -rotate-[calc(var(--tilt)*1.5+4deg)] bg-white shadow-[0_1px_3px_rgb(0_0_0/0.2)] ring-1 ring-black/5" />
+                  )}
+                  <span class="absolute inset-0 rotate-(--tilt) bg-white p-[3px] pb-[13px] shadow-[0_2px_8px_rgb(0_0_0/0.18),0_1px_2px_rgb(0_0_0/0.12)] ring-1 ring-black/5 transition-[rotate,scale] duration-300 group-hover/print:scale-110 group-hover/print:rotate-0 group-focus-visible/print:scale-110 group-focus-visible/print:rotate-0 @sm:p-1 @sm:pb-4">
+                    <img
+                      data-src={place.src}
+                      alt=""
+                      draggable="false"
+                      decoding="async"
+                      class="block aspect-square w-full bg-neutral-200 object-cover"
+                      style={
+                        place.focus
+                          ? `object-position:${place.focus}`
+                          : undefined
+                      }
+                    />
+                    <span class="absolute inset-x-0.5 bottom-0 truncate text-center font-sans text-[8px] leading-[13px] font-medium text-neutral-600 @sm:inset-x-1 @sm:text-[9px] @sm:leading-4">
+                      {place.label}
+                    </span>
+                  </span>
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   )
@@ -139,15 +203,55 @@ const globe = {
   }
   type GlobeData = {
     places: Place[]
-    home?: { name: string; latitude: number; longitude: number }
+    here?: { name: string; latitude: number; longitude: number }
+  }
+  // A place and the print pinned to it. `x`, `y` and `depth` are where its
+  // dot is drawn right now; `offsetX` and `offsetY` lead from there to the
+  // middle of the print.
+  type Marker = Place & {
+    rank: number
+    print: HTMLAnchorElement
+    image: HTMLImageElement
+    x: number
+    y: number
+    depth: number
+    offsetX: number
+    offsetY: number
+    loading: boolean
+    ready: boolean
+    shown: boolean
+    freshUntil: number
+    waitingSince: number
   }
   type GlobeWindow = Window & { __globeController?: AbortController }
 
   const runtimeWindow = window as GlobeWindow
   const RAD = Math.PI / 180
-  const SPIN_DEGREES_PER_SECOND = 5
+  // Degrees per second. The globe lingers where there are photos to look at
+  // and hurries across the oceans in between.
+  const SPIN_SPEED = { photos: 1.5, empty: 12 }
   const RESUME_SPIN_MS = 2500
   const HIT_RADIUS = { mouse: 10, touch: 18 }
+  // The sphere fills 88% of its box, matching the disc drawn in CSS.
+  const SPHERE_RATIO = 0.44
+  // The latitude that sits mid-pane when the page loads.
+  const FOCUS_LATITUDE = 30
+  // Prints only show on the part of the globe that faces the viewer.
+  const PRINT_MIN_DEPTH = 0.3
+  // How long a print stays up before it gives way to a neighbor.
+  const PRINT_DWELL_MS = [6000, 11000]
+  const LAND_SHADES = 5
+
+  // Each land dot as a point on a unit sphere, so a frame only has to rotate.
+  const landPoints = new Float32Array((land.length / 2) * 3)
+  for (let index = 0; index < land.length; index += 2) {
+    const phi = land[index] * RAD
+    const lambda = land[index + 1] * RAD
+    const point = (index / 2) * 3
+    landPoints[point] = Math.cos(phi) * Math.sin(lambda)
+    landPoints[point + 1] = Math.sin(phi)
+    landPoints[point + 2] = Math.cos(phi) * Math.cos(lambda)
+  }
 
   function setupGlobe() {
     runtimeWindow.__globeController?.abort()
@@ -156,48 +260,76 @@ const globe = {
     const { signal } = controller
 
     const root = document.querySelector<HTMLElement>('[data-photo-globe]')
+    const pane = root?.querySelector<HTMLElement>('[data-globe-pane]')
+    const box = root?.querySelector<HTMLElement>('[data-globe-box]')
     const canvas = root?.querySelector<HTMLCanvasElement>('[data-globe-canvas]')
     const nameLabel = root?.querySelector<HTMLElement>('[data-globe-name]')
     const link = root?.querySelector<HTMLAnchorElement>('[data-globe-link]')
     const context = canvas?.getContext('2d')
-    if (!root || !canvas || !nameLabel || !link || !context) return
+    if (!root || !pane || !box || !canvas || !nameLabel || !link || !context)
+      return
 
-    const { places, home } = JSON.parse(root.dataset.globe ?? '{}') as GlobeData
+    const { places, here } = JSON.parse(root.dataset.globe ?? '{}') as GlobeData
     const defaultName = nameLabel.textContent
     const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)')
 
-    // The globe is centered on (centerLatitude, centerLongitude) and starts
-    // looking at home.
-    let centerLongitude = home?.longitude ?? places[0]?.longitude ?? 0
-    let centerLatitude = 20
+    const markers = places.flatMap((place, rank) => {
+      const print = box.querySelector<HTMLAnchorElement>(
+        `[data-globe-print="${rank}"]`,
+      )
+      const image = print?.querySelector('img')
+      if (!print || !image) return []
+      const marker: Marker = {
+        ...place,
+        rank,
+        print,
+        image,
+        x: 0,
+        y: 0,
+        depth: 0,
+        offsetX: 0,
+        offsetY: 0,
+        loading: false,
+        ready: false,
+        shown: false,
+        freshUntil: 0,
+        waitingSince: 0,
+      }
+      return [marker]
+    })
+
+    let centerLongitude = here?.longitude ?? places[0]?.longitude ?? 0
+    let centerLatitude = 0
     let velocity = 0
+    let spinSpeed = SPIN_SPEED.photos
+    let printsUp = 0
     let size = 0
-    let colors = { land: '', place: '', home: '' }
-    let selected: Place | undefined
-    let hovered: Place | undefined
+    let radius = 0
+    // The part of the box that shows through the pane.
+    let view = { left: 0, top: 0, right: 0, bottom: 0 }
+    let printWidth = 0
+    let printHeight = 0
+    let colors = { land: '', place: '', here: '' }
+    let selected: Marker | undefined
+    let hovered: Marker | undefined
     let drag:
-      { x: number; y: number; moved: number; pointerType: string } | undefined
+      { x: number; y: number; moved: number; captured: boolean } | undefined
+    let dragged = false
+    let pointerInside = false
     let lastInteraction = -Infinity
     let lastFrame = performance.now()
     let frame = 0
     let onScreen = false
     let visible = false
+    let aimed = false
 
     const readColors = () => {
       const styles = getComputedStyle(document.documentElement)
       colors = {
         land: getComputedStyle(canvas).color,
-        place: styles.getPropertyValue('--flexoki-orange-400').trim(),
-        home: styles.getPropertyValue('--flexoki-green-400').trim(),
+        place: styles.getPropertyValue('--flexoki-blue-400').trim(),
+        here: styles.getPropertyValue('--flexoki-green-400').trim(),
       }
-    }
-
-    const resize = () => {
-      const ratio = window.devicePixelRatio || 1
-      size = canvas.clientWidth
-      canvas.width = Math.round(size * ratio)
-      canvas.height = Math.round(size * ratio)
-      context.setTransform(ratio, 0, 0, ratio, 0, 0)
     }
 
     // Orthographic projection. `depth` is above 0 on the visible side.
@@ -208,7 +340,6 @@ const globe = {
       const x = Math.cos(phi) * Math.sin(lambda)
       const y = Math.sin(phi)
       const z = Math.cos(phi) * Math.cos(lambda)
-      const radius = size / 2 - 6
       return {
         x: size / 2 + x * radius,
         y: size / 2 - (y * Math.cos(tilt) - z * Math.sin(tilt)) * radius,
@@ -216,59 +347,263 @@ const globe = {
       }
     }
 
+    // Prints hang off a corner of their dot. Where places crowd together,
+    // each takes the corner that keeps it clearest of the prints before it.
+    const assignOffsets = () => {
+      const reachX = printWidth / 2 + 2
+      const reachY = printHeight / 2 + 4
+      const corners = [
+        [reachX, -reachY],
+        [-reachX, -reachY],
+        [reachX, reachY],
+        [-reachX, reachY],
+      ]
+
+      markers.forEach((marker, index) => {
+        let best = corners[0]
+        let bestClearance = -1
+
+        for (const corner of corners) {
+          let clearance = 1.25
+          for (const other of markers.slice(0, index)) {
+            const east =
+              ((((other.longitude - marker.longitude) % 360) + 540) % 360) - 180
+            const dx =
+              radius * Math.cos(marker.latitude * RAD) * east * RAD +
+              other.offsetX -
+              corner[0]
+            const dy =
+              -radius * (other.latitude - marker.latitude) * RAD +
+              other.offsetY -
+              corner[1]
+            // 1 or more means the two prints don't touch.
+            clearance = Math.min(
+              clearance,
+              Math.max(Math.abs(dx) / printWidth, Math.abs(dy) / printHeight),
+            )
+          }
+          if (clearance > bestClearance) {
+            best = corner
+            bestClearance = clearance
+          }
+        }
+
+        marker.offsetX = best[0]
+        marker.offsetY = best[1]
+      })
+    }
+
+    const resize = () => {
+      const ratio = window.devicePixelRatio || 1
+      size = box.clientWidth
+      radius = size * SPHERE_RATIO
+      canvas.width = Math.round(size * ratio)
+      canvas.height = Math.round(size * ratio)
+      context.setTransform(ratio, 0, 0, ratio, 0, 0)
+
+      const boxRect = box.getBoundingClientRect()
+      const paneRect = pane.getBoundingClientRect()
+      view = {
+        left: paneRect.left - boxRect.left,
+        top: paneRect.top - boxRect.top,
+        right: paneRect.right - boxRect.left,
+        bottom: paneRect.bottom - boxRect.top,
+      }
+      printWidth = markers[0]?.print.offsetWidth ?? 0
+      printHeight = markers[0]?.print.offsetHeight ?? 0
+      assignOffsets()
+
+      // A page that loads in a background tab has no size to aim with yet.
+      if (!aimed && size > 0) {
+        aimed = true
+        lookAtStart()
+      }
+    }
+
+    // Turn the globe so where I am now, or the first place, starts in the pane
+    // rather than at the middle of the sphere, which is mostly out of view. It
+    // starts right of center, since the spin carries it further right.
+    const lookAtStart = () => {
+      const start = here ?? places[0]
+      if (!start) return
+      const clamp = (value: number) => Math.max(-0.9, Math.min(0.9, value))
+      const startX = view.left + (view.right - view.left) * 0.68
+      const across = clamp((startX - size / 2) / radius)
+      const up = clamp((size / 2 - (view.top + view.bottom) / 2) / radius)
+      centerLatitude = FOCUS_LATITUDE - Math.asin(up) / RAD
+      centerLongitude =
+        start.longitude -
+        Math.asin(clamp(across / Math.cos(FOCUS_LATITUDE * RAD))) / RAD
+    }
+
+    const drawLand = () => {
+      const turn = centerLongitude * RAD
+      const tilt = centerLatitude * RAD
+      const cosTurn = Math.cos(turn)
+      const sinTurn = Math.sin(turn)
+      const cosTilt = Math.cos(tilt)
+      const sinTilt = Math.sin(tilt)
+      const dot = Math.max(1.1, size * 0.0029)
+      const half = size / 2
+
+      context.fillStyle = colors.land
+      // Dots are grouped into a few shades so each shade fills in one go.
+      for (let shade = 0; shade < LAND_SHADES; shade += 1) {
+        context.globalAlpha = 0.16 + 0.84 * ((shade + 1) / LAND_SHADES)
+        context.beginPath()
+        for (let point = 0; point < landPoints.length; point += 3) {
+          const x =
+            landPoints[point] * cosTurn - landPoints[point + 2] * sinTurn
+          const z =
+            landPoints[point + 2] * cosTurn + landPoints[point] * sinTurn
+          const depth = landPoints[point + 1] * sinTilt + z * cosTilt
+          if (depth <= 0.02) continue
+          if (
+            Math.min(LAND_SHADES - 1, (depth * 1.6 * LAND_SHADES) | 0) !== shade
+          )
+            continue
+
+          const px = half + x * radius
+          const py =
+            half - (landPoints[point + 1] * cosTilt - z * sinTilt) * radius
+          if (
+            px < view.left - dot ||
+            px > view.right + dot ||
+            py < view.top - dot ||
+            py > view.bottom + dot
+          )
+            continue
+
+          // Dots shrink toward the edge, where the surface turns away.
+          const size = dot * (0.5 + 0.5 * Math.min(1, depth * 1.6))
+          context.moveTo(px + size, py)
+          context.arc(px, py, size, 0, Math.PI * 2)
+        }
+        context.fill()
+      }
+    }
+
     const draw = (time: number) => {
       context.clearRect(0, 0, size, size)
-      const radius = size / 2 - 6
-
-      context.globalAlpha = 0.08
-      context.fillStyle = colors.land
-      context.beginPath()
-      context.arc(size / 2, size / 2, radius, 0, Math.PI * 2)
-      context.fill()
-
-      for (let index = 0; index < land.length; index += 2) {
-        const point = project(land[index], land[index + 1])
-        if (point.depth <= 0) continue
-        context.globalAlpha = 0.12 + point.depth * 0.45
-        context.fillRect(point.x - 0.7, point.y - 0.7, 1.4, 1.4)
-      }
+      drawLand()
 
       context.fillStyle = colors.place
-      for (const place of places) {
-        const point = project(place.latitude, place.longitude)
-        if (point.depth <= 0) continue
-        const active = place === hovered || place === selected
-        context.globalAlpha = 0.35 + point.depth * 0.65
+      for (const marker of markers) {
+        if (marker.depth <= 0) continue
+        const active = marker === hovered || marker === selected
+        context.globalAlpha = Math.min(1, 0.3 + marker.depth * 1.4)
         context.beginPath()
-        context.arc(point.x, point.y, active ? 4 : 2.4, 0, Math.PI * 2)
+        context.arc(marker.x, marker.y, active ? 5 : 3.2, 0, Math.PI * 2)
         context.fill()
         if (active) {
-          context.globalAlpha = 0.35
+          context.globalAlpha = 0.3
           context.beginPath()
-          context.arc(point.x, point.y, 8, 0, Math.PI * 2)
+          context.arc(marker.x, marker.y, 10, 0, Math.PI * 2)
           context.fill()
         }
       }
 
-      if (home) {
-        const point = project(home.latitude, home.longitude)
+      if (here) {
+        const point = project(here.latitude, here.longitude)
         if (point.depth > 0) {
           const breath = reduceMotion.matches
             ? 0.5
             : (Math.sin(time / 500) + 1) / 2
-          context.fillStyle = colors.home
+          context.fillStyle = colors.here
           context.globalAlpha = 0.3 * (1 - breath) + 0.05
           context.beginPath()
-          context.arc(point.x, point.y, 4 + breath * 5, 0, Math.PI * 2)
+          context.arc(point.x, point.y, 5 + breath * 6, 0, Math.PI * 2)
           context.fill()
           context.globalAlpha = 1
           context.beginPath()
-          context.arc(point.x, point.y, 3, 0, Math.PI * 2)
+          context.arc(point.x, point.y, 3.6, 0, Math.PI * 2)
           context.fill()
         }
       }
 
       context.globalAlpha = 1
+    }
+
+    const loadPrint = (marker: Marker) => {
+      if (marker.loading) return
+      marker.loading = true
+      marker.image.src = marker.image.dataset.src ?? ''
+      marker.image
+        .decode()
+        .then(() => (marker.ready = true))
+        .catch(() => undefined)
+    }
+
+    const overlap = (a: Marker, b: Marker) =>
+      Math.abs(a.x + a.offsetX - b.x - b.offsetX) < printWidth + 6 &&
+      Math.abs(a.y + a.offsetY - b.y - b.offsetY) < printHeight + 6
+
+    // Decide which prints are up. Prints never overlap: one that is already
+    // up keeps its spot until its time runs out, then yields to whichever
+    // neighbor has waited longest, so crowded areas take turns.
+    const layoutPrints = (time: number) => {
+      const holding =
+        reduceMotion.matches ||
+        pointerInside ||
+        Boolean(drag) ||
+        pane.contains(document.activeElement)
+      const turn = (marker: Marker) =>
+        !marker.shown ? 1 : holding || time < marker.freshUntil ? 0 : 2
+
+      const candidates = markers.filter((marker) => {
+        const point = project(marker.latitude, marker.longitude)
+        marker.x = point.x
+        marker.y = point.y
+        marker.depth = point.depth
+        if (point.depth <= 0) return false
+
+        const x = point.x + marker.offsetX
+        const y = point.y + marker.offsetY
+        marker.print.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`
+
+        const fits =
+          point.depth > PRINT_MIN_DEPTH &&
+          x - printWidth / 2 > view.left + 4 &&
+          x + printWidth / 2 < view.right - 4 &&
+          y - printHeight / 2 > view.top + 4 &&
+          y + printHeight / 2 < view.bottom - 4
+        if (fits) loadPrint(marker)
+        return fits && marker.ready
+      })
+
+      candidates.sort(
+        (a, b) =>
+          turn(a) - turn(b) ||
+          (a.shown ? 0 : a.waitingSince - b.waitingSince) ||
+          a.rank - b.rank,
+      )
+
+      const up = new Set<Marker>()
+      for (const marker of candidates) {
+        let clear = true
+        for (const other of up) {
+          if (overlap(marker, other)) {
+            clear = false
+            break
+          }
+        }
+        if (clear) up.add(marker)
+      }
+      printsUp = up.size
+
+      for (const marker of markers) {
+        const shown = up.has(marker)
+        if (shown === marker.shown) continue
+        marker.shown = shown
+        marker.print.toggleAttribute('data-shown', shown)
+        if (shown) {
+          const [shortest, longest] = PRINT_DWELL_MS
+          marker.freshUntil =
+            time + shortest + Math.random() * (longest - shortest)
+        } else {
+          marker.waitingSince = time
+        }
+      }
     }
 
     const tick = (time: number) => {
@@ -283,12 +618,17 @@ const globe = {
         } else if (
           !reduceMotion.matches &&
           !hovered &&
+          !pane.contains(document.activeElement) &&
           time - lastInteraction > RESUME_SPIN_MS
         ) {
-          centerLongitude += SPIN_DEGREES_PER_SECOND * elapsed
+          // Turn eastward, like the real thing.
+          const speed = printsUp > 0 ? SPIN_SPEED.photos : SPIN_SPEED.empty
+          spinSpeed += (speed - spinSpeed) * Math.min(1, elapsed * 1.5)
+          centerLongitude -= spinSpeed * elapsed
         }
       }
 
+      layoutPrints(time)
       draw(time)
       frame = visible ? requestAnimationFrame(tick) : 0
     }
@@ -299,29 +639,31 @@ const globe = {
       frame = requestAnimationFrame(tick)
     }
 
-    const placeAt = (event: PointerEvent) => {
-      const rect = canvas.getBoundingClientRect()
+    const markerAt = (event: PointerEvent) => {
+      const print = (event.target as Element).closest?.('[data-globe-print]')
+      if (print) return markers.find((marker) => marker.print === print)
+
+      const rect = box.getBoundingClientRect()
       const x = event.clientX - rect.left
       const y = event.clientY - rect.top
       const reach =
         event.pointerType === 'mouse' ? HIT_RADIUS.mouse : HIT_RADIUS.touch
-      let closest: Place | undefined
+      let closest: Marker | undefined
       let closestDistance = reach
 
-      for (const place of places) {
-        const point = project(place.latitude, place.longitude)
-        if (point.depth <= 0) continue
-        const distance = Math.hypot(point.x - x, point.y - y)
+      for (const marker of markers) {
+        if (marker.depth <= 0) continue
+        const distance = Math.hypot(marker.x - x, marker.y - y)
         if (distance < closestDistance) {
-          closest = place
+          closest = marker
           closestDistance = distance
         }
       }
       return closest
     }
 
-    const show = (place: Place | undefined) => {
-      const shown = place ?? selected
+    const show = (marker: Marker | undefined) => {
+      const shown = marker ?? selected
       if (!shown) {
         nameLabel.textContent = defaultName
         link.hidden = true
@@ -333,23 +675,19 @@ const globe = {
       link.hidden = false
     }
 
-    canvas.addEventListener(
+    pane.addEventListener(
       'pointerdown',
       (event) => {
-        drag = {
-          x: event.clientX,
-          y: event.clientY,
-          moved: 0,
-          pointerType: event.pointerType,
-        }
+        if (event.button !== 0) return
+        drag = { x: event.clientX, y: event.clientY, moved: 0, captured: false }
+        dragged = false
         velocity = 0
         lastInteraction = performance.now()
-        canvas.setPointerCapture(event.pointerId)
       },
       { signal },
     )
 
-    canvas.addEventListener(
+    pane.addEventListener(
       'pointermove',
       (event) => {
         if (drag) {
@@ -358,10 +696,22 @@ const globe = {
           drag.x = event.clientX
           drag.y = event.clientY
           drag.moved += Math.hypot(dx, dy)
+          // A press that never moves stays a plain click, so prints still
+          // work as links. Once it moves, the globe keeps the pointer.
+          if (!drag.captured && drag.moved >= 6) {
+            drag.captured = true
+            dragged = true
+            pane.setPointerCapture(event.pointerId)
+            hovered = undefined
+            pane.style.cursor = ''
+            show(undefined)
+          }
           // Degrees per pixel, so the surface roughly follows the pointer.
-          const scale = 180 / (Math.PI * (size / 2))
-          velocity = dx * scale
-          centerLongitude -= velocity
+          const scale = 180 / (Math.PI * radius)
+          centerLongitude -= dx * scale
+          // Cap the speed a fling carries on with, so a hard flick doesn't
+          // send the globe around several times.
+          velocity = Math.max(-4, Math.min(4, dx * scale))
           centerLatitude = Math.max(
             -60,
             Math.min(60, centerLatitude + dy * scale),
@@ -371,8 +721,8 @@ const globe = {
         }
 
         if (event.pointerType !== 'mouse') return
-        hovered = placeAt(event)
-        canvas.style.cursor = hovered ? 'pointer' : ''
+        hovered = markerAt(event)
+        pane.style.cursor = hovered ? 'pointer' : ''
         show(hovered)
       },
       { signal },
@@ -386,30 +736,60 @@ const globe = {
       if (!wasTap) return
 
       velocity = 0
-      const place = placeAt(event)
-      if (place && event.pointerType === 'mouse') {
-        navigate(`/photo/${place.slug}`)
+      // A tap on a print is a click on its link, which the browser follows.
+      if ((event.target as Element).closest?.('[data-globe-print]')) return
+
+      const marker = markerAt(event)
+      if (marker && event.pointerType === 'mouse') {
+        navigate(`/photo/${marker.slug}`)
         return
       }
       // On touch, the first tap picks a place and the link takes you there.
-      selected = place
-      show(place)
+      selected = marker
+      show(marker)
     }
 
-    canvas.addEventListener('pointerup', endDrag, { signal })
-    canvas.addEventListener('pointercancel', () => (drag = undefined), {
-      signal,
-    })
-    canvas.addEventListener(
+    pane.addEventListener('pointerup', endDrag, { signal })
+    pane.addEventListener('pointercancel', () => (drag = undefined), { signal })
+    pane.addEventListener(
+      'pointerenter',
+      (event) => (pointerInside = event.pointerType === 'mouse'),
+      { signal },
+    )
+    pane.addEventListener(
       'pointerleave',
       () => {
+        pointerInside = false
         if (!hovered) return
         hovered = undefined
-        canvas.style.cursor = ''
+        pane.style.cursor = ''
         show(undefined)
       },
       { signal },
     )
+    // Letting go of a drag over a print shouldn't open it.
+    pane.addEventListener(
+      'click',
+      (event) => {
+        if (!dragged) return
+        dragged = false
+        event.preventDefault()
+        event.stopPropagation()
+      },
+      { capture: true, signal },
+    )
+    pane.addEventListener('dragstart', (event) => event.preventDefault(), {
+      signal,
+    })
+    pane.addEventListener(
+      'focusin',
+      (event) => {
+        const print = (event.target as Element).closest('[data-globe-print]')
+        show(markers.find((marker) => marker.print === print))
+      },
+      { signal },
+    )
+    pane.addEventListener('focusout', () => show(hovered), { signal })
 
     // Only animate while the globe is on screen and the tab is in front.
     const updateVisibility = () => {
@@ -420,7 +800,7 @@ const globe = {
       onScreen = entry.isIntersecting
       updateVisibility()
     })
-    observer.observe(canvas)
+    observer.observe(pane)
     document.addEventListener('visibilitychange', updateVisibility, { signal })
 
     // Follow light and dark mode.
@@ -429,16 +809,25 @@ const globe = {
       attributes: true,
       attributeFilter: ['class'],
     })
-    window.addEventListener('resize', resize, { signal })
+    const resizeObserver = new ResizeObserver(() => {
+      resize()
+      if (!frame) {
+        layoutPrints(performance.now())
+        draw(performance.now())
+      }
+    })
+    resizeObserver.observe(pane)
 
     signal.addEventListener('abort', () => {
       cancelAnimationFrame(frame)
       observer.disconnect()
       themeObserver.disconnect()
+      resizeObserver.disconnect()
     })
 
     readColors()
     resize()
+    layoutPrints(performance.now())
     draw(performance.now())
   }
 

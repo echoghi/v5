@@ -6,6 +6,7 @@ import Icon from '@/components/Icon.astro'
 import Link from '@/components/Link.astro'
 import PhotoGlobe from '@/components/PhotoGlobe.astro'
 import Layout from '@/layouts/Layout.astro'
+import { getPlaceName } from '@/lib/photo-places'
 import { getPhotostreamImages, getRecentPhotos } from '@/lib/server-utils'
 import { formatDate } from '@/lib/utils'
 import { SITE } from '@/site.config'
@@ -18,7 +19,8 @@ const latestPosts = allPosts.slice(0, SITE.NUM_POSTS_ON_HOMEPAGE)
 
 const photos = await getPhotostreamImages(await getCollection('photos'))
 const recentPhotos = getRecentPhotos(photos, SITE.NUM_PHOTOS_ON_HOMEPAGE)
-const placeCount = new Set(photos.map((photo) => photo.location)).size
+const placeCount = new Set(photos.map((photo) => getPlaceName(photo.location)))
+  .size
 
 const now = await getEntry('now', 'index')
 ---

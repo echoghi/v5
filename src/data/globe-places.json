@@ -1,0 +1,169 @@
+[
+  {
+    "place": "San Francisco, California, United States",
+    "locations": [
+      "San Francisco, California, United States",
+      "Chinatown, San Francisco, California, United States",
+      "Parkside, San Francisco, California, United States"
+    ],
+    "photo": "san-francisco/f5df3e8a1969c4fa"
+  },
+  {
+    "place": "Bangkok, Thailand",
+    "locations": [
+      "Bangkok, Thailand",
+      "Bang Rak, Bangkok, Thailand",
+      "Bang Rak Subdistrict, Bangkok, Thailand",
+      "Khlong San, Bangkok, Thailand",
+      "Khlong Toei, Bangkok, Thailand",
+      "Makkasan, Bangkok, Thailand",
+      "Phra Nakhon, Bangkok, Thailand",
+      "Samphanthawong, Bangkok, Thailand",
+      "Wat Arun, Bangkok, Thailand",
+      "Watthana, Bangkok, Thailand"
+    ],
+    "photo": "thailand/e2c8b0f7ab650bd7",
+    "focus": "50% 35%"
+  },
+  {
+    "place": "Dogliani, Piedmont, Italy",
+    "photo": "italy/42050804e7e5bcc9"
+  },
+  {
+    "place": "Da Nang, Vietnam",
+    "locations": [
+      "Da Nang, Da Nang City, Vietnam",
+      "An Hải, Da Nang City, Vietnam",
+      "Bà Nà, Da Nang City, Vietnam",
+      "Sơn Trà, Da Nang City, Vietnam"
+    ],
+    "photo": "vietnam/9b6c7e6fa09cca3e",
+    "focus": "40% 50%"
+  },
+  {
+    "place": "Truckee, California, United States",
+    "photo": "lake-tahoe/948da835088e73f9",
+    "focus": "50% 100%"
+  },
+  {
+    "place": "Corralitos, California, United States",
+    "photo": "san-francisco/42932c9e0f9c2aa1",
+    "focus": "50% 60%"
+  },
+  {
+    "place": "Hua Hin, Prachuap Khiri Khan, Thailand",
+    "photo": "thailand/70d903ab4c6805e7",
+    "focus": "50% 55%"
+  },
+  {
+    "place": "Marin Headlands, California, United States",
+    "photo": "san-francisco/8a642500fc889ce0"
+  },
+  {
+    "place": "Eagleville, Tennessee, United States",
+    "photo": "tennessee/3eb572b3846bb6c6"
+  },
+  {
+    "place": "Rancho Pescadero, Baja California Sur, Mexico",
+    "photo": "misc/2384ea91dffd1d93"
+  },
+  {
+    "place": "Boston, Massachusetts, United States",
+    "photo": "misc/81dccbdc751c9712",
+    "focus": "50% 70%"
+  },
+  {
+    "place": "Maui, Hawaii, United States",
+    "locations": [
+      "Waihee-Waiehu, Hawaii, United States",
+      "Kaanapali Landing, Hawaii, United States"
+    ],
+    "photo": "maui/7955a2d458c1bbd6"
+  },
+  {
+    "place": "Sausalito, California, United States",
+    "photo": "san-francisco/3c46f4be81acfd1e"
+  },
+  {
+    "place": "Bonny Doon, California, United States",
+    "photo": "san-francisco/925e14ed19f6beea",
+    "focus": "40% 50%"
+  },
+  {
+    "place": "Pacific Grove, California, United States",
+    "photo": "san-francisco/5196e13d2bab3d8d"
+  },
+  {
+    "place": "Stanford, California, United States",
+    "photo": "palo-alto/326fc18901a8b6ba"
+  },
+  {
+    "place": "Stateline, Nevada, United States",
+    "photo": "lake-tahoe/ce67804f34013d9e"
+  },
+  {
+    "place": "Belvedere, California, United States",
+    "photo": "san-francisco/1cafff4c5d00e7cd",
+    "focus": "35% 50%"
+  },
+  {
+    "place": "Stinson Beach, California, United States",
+    "photo": "san-francisco/7c2186011656dbc9",
+    "focus": "50% 30%"
+  },
+  {
+    "place": "El Granada, California, United States",
+    "photo": "san-francisco/170ef8c38fc8476a",
+    "focus": "40% 50%"
+  },
+  {
+    "place": "Alba, Piedmont, Italy",
+    "photo": "italy/865841f5a6d33bea"
+  },
+  {
+    "place": "South Lake Tahoe, California, United States",
+    "photo": "misc/4dae204b81a18b31"
+  },
+  {
+    "place": "Carmel-by-the-Sea, California, United States",
+    "photo": "san-francisco/f3ae7d24f795145a",
+    "focus": "50% 60%"
+  },
+  {
+    "place": "Montara, California, United States",
+    "photo": "san-francisco/b59b1f36f0dbd0df"
+  },
+  {
+    "place": "Palo Alto, California, United States",
+    "photo": "palo-alto/79767dbe47ee1578"
+  },
+  {
+    "place": "Menlo Park, California, United States",
+    "photo": "palo-alto/358ad23f37fe94df"
+  },
+  {
+    "place": "Isla Vista, California, United States",
+    "photo": "misc/bef2a3431dec317c"
+  },
+  {
+    "place": "Venice, California, United States",
+    "photo": "thousand-oaks/c865c2202470ed6b"
+  },
+  {
+    "place": "Napa, California, United States",
+    "photo": "misc/adec0338e8b18a31",
+    "focus": "50% 40%"
+  },
+  {
+    "place": "Tiburon, California, United States",
+    "photo": "san-francisco/5d09e7594fa7bf71"
+  },
+  {
+    "place": "Strawberry, California, United States",
+    "photo": "san-francisco/a039aaa31c807dac"
+  },
+  {
+    "place": "Pran Buri, Prachuap Khiri Khan, Thailand",
+    "photo": "thailand/c410aeb70457ed89"
+  }
+]
