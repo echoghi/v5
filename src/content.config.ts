@@ -1,6 +1,7 @@
 import { glob } from 'astro/loaders'
 import { z } from 'astro/zod'
 import { defineCollection } from 'astro:content'
+import { getCountryCode } from './lib/countries'
 
 const blog = defineCollection({
   loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/blog' }),
@@ -78,7 +79,8 @@ const notes = defineCollection({
 })
 
 // The /now page. `summary` is the one-liner shown on the homepage, and
-// `location` drives the sky in the footer, so update it when you travel.
+// `location` drives the sky in the footer and the "Now in" beside the homepage
+// globe, so update it when you travel.
 const now = defineCollection({
   loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/now' }),
   schema: z.object({
@@ -86,6 +88,15 @@ const now = defineCollection({
     summary: z.string().max(120),
     location: z.object({
       name: z.string(),
+      // The state or province shown after the name, where there is one.
+      region: z.string().optional(),
+      // Spelled the way photo locations spell it, like "United States".
+      country: z
+        .string()
+        .refine(
+          (name) => getCountryCode(name) !== undefined,
+          'Unknown country name',
+        ),
       timeZone: z.string(),
       latitude: z.number().min(-90).max(90),
       longitude: z.number().min(-180).max(180),

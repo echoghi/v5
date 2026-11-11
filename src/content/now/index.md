@@ -3,6 +3,8 @@ updated: 2026-10-21
 summary: Building small businesses at Renna Labs and settling into life in Tennessee.
 location:
   name: Nashville
+  region: Tennessee
+  country: United States
   timeZone: America/Chicago
   latitude: 36.16
   longitude: -86.78

@@ -1,0 +1,33 @@
+---
+import { icons } from '@iconify-json/circle-flags'
+
+interface Props {
+  // ISO 3166 country code, like "US".
+  code: string
+  class?: string
+}
+
+const { code, class: className } = Astro.props
+const flags: Record<string, { body: string } | undefined> = icons.icons
+const flag = flags[code.toLowerCase()]
+
+if (!flag) {
+  throw new Error(`Unknown flag: ${code}`)
+}
+
+// Every flag in the set masks itself with the same id, so each one is drawn
+// as its own image rather than inlined into the page.
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${icons.width} ${icons.height}">${flag.body}</svg>`
+---
+
+<img
+  src={`data:image/svg+xml,${encodeURIComponent(svg)}`}
+  alt=""
+  width="20"
+  height="20"
+  draggable="false"
+  class:list={[
+    'ring-foreground/15 block shrink-0 rounded-full ring-1',
+    className,
+  ]}
+/>

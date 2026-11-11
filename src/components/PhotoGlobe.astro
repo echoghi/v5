@@ -1,5 +1,7 @@
 ---
+import Flag from '@/components/Flag.astro'
 import placeCoordinates from '@/data/photo-places.json'
+import { getCountryCode } from '@/lib/countries'
 import { getPlaceName, photoPlaces } from '@/lib/photo-places'
 import type { PhotostreamImage } from '@/lib/server-utils'
 import { getEntry } from 'astro:content'
@@ -61,13 +63,20 @@ const places = [...photosByPlace]
       a.rank - b.rank || b.count - a.count || a.name.localeCompare(b.name),
   )
 
-const countryCount = new Set(
-  places.map((place) => place.name.split(', ').pop()),
-).size
+// A flag for each country the photos come from. A country the flag set
+// doesn't know still counts, it just goes without a flag.
+const countryNames = [
+  ...new Set(places.map((place) => place.name.split(', ').pop()!)),
+].sort((a, b) => a.localeCompare(b))
+const countries = countryNames.flatMap((name) => {
+  const code = getCountryCode(name)
+  return code ? [{ name, code }] : []
+})
 
 // The green dot is wherever the now page says I currently am.
 const now = await getEntry('now', 'index')
 const here = now?.data.location
+const hereCode = here && getCountryCode(here.country)
 const globe = {
   places: places.map(({ name, latitude, longitude, count, slug }) => ({
     name,
@@ -94,44 +103,74 @@ const tilt = (index: number) => ((index * 37) % 13) - 6
       data-photo-globe
       data-globe={JSON.stringify(globe)}
     >
-      <div class="flex flex-col justify-center gap-3 px-4 pt-4 pb-4 sm:w-[42%] sm:px-5 sm:py-5">
-        <h2 class="font-sans text-2xl font-semibold">Places</h2>
-        <p class="font-editorial text-muted-foreground text-lg text-pretty">
-          Everywhere the photostream has been so far.{' '}
-          <span class="pointer-fine:hidden">Drag to spin, tap a photo.</span>
-          <span class="pointer-coarse:hidden">
-            Drag to spin, click a photo.
-          </span>
-        </p>
-        <div
-          class="flex min-h-12 flex-col justify-center font-sans text-base sm:text-sm"
-          aria-live="polite"
-        >
-          <p class="text-foreground text-pretty" data-globe-name>
-            {places.length} places in {countryCount}{' '}
-            {countryCount === 1 ? 'country' : 'countries'}
-          </p>
-          <a
-            class="text-muted-foreground hover:text-foreground focus-visible:ring-ring w-fit underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:outline-hidden"
-            data-globe-link
-            hidden
-          />
-        </div>
-        <ul
-          class="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 font-sans text-sm"
-          role="list"
-        >
-          <li class="flex items-center gap-2">
-            <span class="size-2 rounded-full bg-[var(--flexoki-blue-400)]" />
-            Photos
-          </li>
-          {globe.here && (
-            <li class="flex items-center gap-2">
-              <span class="now-dot size-2 rounded-full bg-[var(--flexoki-green-400)]" />
-              Currently in {globe.here.name}
-            </li>
+      <div class="flex flex-col justify-center gap-5 px-4 py-5 sm:w-[42%] sm:px-5">
+        {here ? (
+          <div class="flex flex-col gap-1.5">
+            <p class="text-muted-foreground flex items-center gap-2 font-sans text-base sm:text-sm">
+              {hereCode && <Flag code={hereCode} class="size-4" />}
+              Now in
+            </p>
+            <h2 class="font-sans text-2xl font-semibold text-balance">
+              {here.name}, {here.region ?? here.country}
+            </h2>
+          </div>
+        ) : (
+          <h2 class="font-sans text-2xl font-semibold">Places</h2>
+        )}
+        <div class="flex flex-col gap-2.5 font-sans">
+          {/* The count gives way to a place while one is picked on the globe. */}
+          <div
+            class="text-muted-foreground flex h-6 items-center text-base sm:text-sm"
+            aria-live="polite"
+          >
+            <p data-globe-count>
+              <span class="text-foreground font-medium">{places.length}</span>{' '}
+              places in{' '}
+              <span class="text-foreground font-medium">
+                {countryNames.length}
+              </span>{' '}
+              {countryNames.length === 1 ? 'country' : 'countries'}
+            </p>
+            <a
+              class="group/place focus-visible:ring-ring flex min-w-0 items-baseline gap-1.5 rounded-sm focus-visible:ring-2 focus-visible:outline-hidden"
+              data-globe-link
+              hidden
+            >
+              <span
+                class="text-foreground truncate font-medium"
+                data-globe-name
+              />
+              <span
+                class="group-hover/place:text-foreground shrink-0 whitespace-nowrap"
+                data-globe-photos
+              />
+            </a>
+          </div>
+          {countries.length > 0 && (
+            <ul
+              class="relative flex flex-wrap gap-1.5"
+              role="list"
+              aria-label="Countries in the photostream"
+              data-globe-flags
+            >
+              {countries.map((country) => (
+                <li
+                  class="cursor-default"
+                  role="img"
+                  aria-label={country.name}
+                  data-globe-flag={country.name}
+                >
+                  <Flag code={country.code} class="size-5" />
+                </li>
+              ))}
+              <li
+                class="bg-foreground text-background pointer-events-none absolute bottom-full left-0 mb-2 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap opacity-0 transition-opacity duration-150 data-shown:opacity-100"
+                aria-hidden="true"
+                data-globe-flag-tip
+              />
+            </ul>
           )}
-        </ul>
+        </div>
       </div>
       <div
         class="border-foreground/10 bg-foreground/[0.03] @container relative h-72 cursor-grab touch-pan-y overflow-clip border-t select-none active:cursor-grabbing sm:h-84 sm:flex-1 sm:border-t-0 sm:border-r"
@@ -263,14 +302,25 @@ const tilt = (index: number) => ((index * 37) % 13) - 6
     const pane = root?.querySelector<HTMLElement>('[data-globe-pane]')
     const box = root?.querySelector<HTMLElement>('[data-globe-box]')
     const canvas = root?.querySelector<HTMLCanvasElement>('[data-globe-canvas]')
-    const nameLabel = root?.querySelector<HTMLElement>('[data-globe-name]')
+    const count = root?.querySelector<HTMLElement>('[data-globe-count]')
     const link = root?.querySelector<HTMLAnchorElement>('[data-globe-link]')
+    const nameLabel = link?.querySelector<HTMLElement>('[data-globe-name]')
+    const photosLabel = link?.querySelector<HTMLElement>('[data-globe-photos]')
     const context = canvas?.getContext('2d')
-    if (!root || !pane || !box || !canvas || !nameLabel || !link || !context)
+    if (
+      !root ||
+      !pane ||
+      !box ||
+      !canvas ||
+      !count ||
+      !link ||
+      !nameLabel ||
+      !photosLabel ||
+      !context
+    )
       return
 
     const { places, here } = JSON.parse(root.dataset.globe ?? '{}') as GlobeData
-    const defaultName = nameLabel.textContent
     const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)')
 
     const markers = places.flatMap((place, rank) => {
@@ -664,15 +714,12 @@ const tilt = (index: number) => ((index * 37) % 13) - 6
 
     const show = (marker: Marker | undefined) => {
       const shown = marker ?? selected
-      if (!shown) {
-        nameLabel.textContent = defaultName
-        link.hidden = true
-        return
-      }
+      count.hidden = Boolean(shown)
+      link.hidden = !shown
+      if (!shown) return
       nameLabel.textContent = shown.name
-      link.textContent = `${shown.count} ${shown.count === 1 ? 'photo' : 'photos'} →`
+      photosLabel.textContent = `${shown.count} ${shown.count === 1 ? 'photo' : 'photos'} →`
       link.href = `/photo/${shown.slug}`
-      link.hidden = false
     }
 
     pane.addEventListener(
@@ -790,6 +837,30 @@ const tilt = (index: number) => ((index * 37) % 13) - 6
       { signal },
     )
     pane.addEventListener('focusout', () => show(hovered), { signal })
+
+    // Name a flag's country above it, kept inside the row of flags so the
+    // card's edge never cuts the name off.
+    const flags = root.querySelector<HTMLElement>('[data-globe-flags]')
+    const tip = flags?.querySelector<HTMLElement>('[data-globe-flag-tip]')
+    if (flags && tip) {
+      const nameFlag = (event: Event) => {
+        const flag = (event.target as Element).closest<HTMLElement>(
+          '[data-globe-flag]',
+        )
+        tip.toggleAttribute('data-shown', Boolean(flag))
+        if (!flag) return
+        tip.textContent = flag.dataset.globeFlag ?? ''
+        const middle = flag.offsetLeft + flag.offsetWidth / 2
+        const left = Math.min(
+          middle - tip.offsetWidth / 2,
+          flags.clientWidth - tip.offsetWidth,
+        )
+        tip.style.left = `${Math.max(0, left)}px`
+        tip.style.bottom = `${flags.clientHeight - flag.offsetTop}px`
+      }
+      flags.addEventListener('pointerover', nameFlag, { signal })
+      flags.addEventListener('pointerleave', nameFlag, { signal })
+    }
 
     // Only animate while the globe is on screen and the tab is in front.
     const updateVisibility = () => {
