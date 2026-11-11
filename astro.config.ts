@@ -140,8 +140,25 @@ export default defineConfig({
 
   vite: {
     plugins: [tailwindcss()],
+    // Dev only. Vite bundles each package the browser imports the first time
+    // it meets one, then reloads the page. Meeting them one at a time left the
+    // dev server handing out stale bundles, which broke page scripts until a
+    // restart. Listing them bundles them all once, at startup.
     optimizeDeps: {
-      include: ['react-dom/client'],
+      include: [
+        'react-dom/client',
+        'lucide-react',
+        'plausible-tracker',
+        'clsx',
+        'tailwind-merge',
+        'class-variance-authority',
+        '@radix-ui/react-slot',
+        '@radix-ui/react-icons',
+        'astro/virtual-modules/transitions-router.js',
+        'astro/virtual-modules/transitions-types.js',
+        'astro/virtual-modules/transitions-events.js',
+        'astro/virtual-modules/transitions-swap-functions.js',
+      ],
     },
   },
 
